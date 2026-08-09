@@ -323,7 +323,8 @@ export function AiInsightsPanel({
       });
 
       if (!response.ok) {
-        throw new Error('Gagal menghasilkan analisis AI');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'AI sedang tidak tersedia. Silakan coba kembali.');
       }
 
       const data = await response.json();

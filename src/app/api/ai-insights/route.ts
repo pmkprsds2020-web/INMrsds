@@ -1,7 +1,13 @@
-import ZAI from 'z-ai-web-dev-sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { generateAIResponse } from '@/lib/ai/ai-service';
+import { AI_INSIGHTS_SYSTEM_PROMPT, buildIndicatorAnalysisPrompt } from '@/lib/ai/prompts';
+import { authenticateApiRequest } from '@/lib/api-auth';
 
 export async function POST(req: NextRequest) {
+  // ── Authenticate ────────────────────────────────────────────────
+  const auth = await authenticateApiRequest(req);
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await req.json();
     const { indicatorType, stats, entries, unitId } = body as {
@@ -11,61 +17,45 @@ export async function POST(req: NextRequest) {
       unitId: string;
     };
 
-    const zai = await ZAI.create();
+    // Validate required fields
+    if (!indicatorType || !stats || !entries || !unitId) {
+      return NextResponse.json(
+        { error: 'Missing required fields: indicatorType, stats, entries, unitId' },
+        { status: 400 }
+      );
+    }
 
-    const systemPrompt = `Anda adalah konsultan mutu rumah sakit yang ahli dalam analisis indikator mutu dan keselamatan pasien. Anda memberikan analisis dalam bahasa Indonesia yang jelas, terstruktur, dan actionable.
-
-Tugas Anda:
-1. Analisis tren kepatuhan berdasarkan data yang diberikan
-2. Identifikasi area yang perlu perbaikan
-3. Berikan rekomendasi tindakan yang konkret dan dapat dilaksanakan
-4. Bandingkan kinerja saat ini dengan target yang ditetapkan
-5. Berikan konteks tentang signifikansi temuan
-
-Format jawaban Anda dalam bahasa Indonesia dengan struktur berikut:
-
-## Temuan Utama
-[Daftar temuan utama dari analisis data]
-
-## Analisis Tren
-[Analisis tren kinerja berdasarkan data historis]
-
-## Rekomendasi Tindakan
-[Rekomendasi spesifik dan actionable untuk perbaikan]
-
-## Evaluasi Target
-[Evaluasi pencapaian terhadap target yang ditetapkan]`;
-
-    const userPrompt = `Analisis data indikator mutu berikut:
-
-**Indikator:** ${indicatorType}
-**Unit:** ${unitId || 'Semua Unit'}
-**Statistik:**
-- Numerator: ${stats.num}
-- Denominator: ${stats.den}
-- Capaian: ${stats.pct}%
-- Target tercapai: ${stats.ok ? 'Ya' : 'Tidak'}
-
-**Jumlah Data:** ${entries.length} entri
-
-${entries.length > 0 ? `**Ringkasan Data Terbaru:**
-${entries.slice(0, 10).map((e, i) => `${i + 1}. Tanggal: ${e.date || '-'}, Unit: ${e.unitId || '-'}`).join('\n')}` : 'Tidak ada data tersedia untuk periode ini.'}
-
-Berikan analisis lengkap dalam bahasa Indonesia.`;
-
-    const response = await zai.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      thinking: { type: 'disabled' },
+    // Build prompts
+    const systemPrompt = AI_INSIGHTS_SYSTEM_PROMPT;
+    const userPrompt = buildIndicatorAnalysisPrompt({
+      indicatorType,
+      unitName: unitId,
+      stats,
+      entries,
     });
 
-    const insights = response.choices[0]?.message?.content || 'Tidak dapat menghasilkan analisis.';
+    // Call DeepSeek via centralized service
+    const result = await generateAIResponse({
+      systemPrompt,
+      userPrompt,
+      temperature: 0.7,
+      maxTokens: 2048,
+    });
 
-    return NextResponse.json({ insights });
+    if (!result.success) {
+      console.error('[AI Insights] Generation failed:', result.error);
+      return NextResponse.json(
+        { error: 'AI sedang tidak tersedia. Silakan coba kembali.' },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json({
+      insights: result.content,
+      usage: result.usage,
+    });
   } catch (error) {
-    console.error('AI Insights error:', error);
+    console.error('[AI Insights] Unexpected error:', error instanceof Error ? error.message : 'Unknown');
     return NextResponse.json(
       { error: 'Failed to generate insights' },
       { status: 500 }
