@@ -1064,7 +1064,7 @@ export function IndicatorPanel({
             <Button
               size="sm"
               onClick={handleAdd}
-              disabled={isLoading || accessBlocked}
+              disabled={isLoading || accessBlocked || activeUnit === 'all'}
               className="h-8 bg-[#4f8ef7]/20 text-[#4f8ef7] hover:bg-[#4f8ef7]/30 border-0 text-xs font-medium gap-1.5"
             >
               <Plus className="size-3.5" />

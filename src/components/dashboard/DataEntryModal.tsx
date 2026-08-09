@@ -267,15 +267,17 @@ export function DataEntryModal({
 
   // ── Reset form when type changes ──
   const resetForm = useCallback(() => {
+    const unitLabel = UNIT_MAP[activeUnit]?.label || '';
+
     setDate(todayStr());
-    setTanganStaff(''); setTanganObserver(''); setTanganRoom(UNIT_MAP[activeUnit]?.label || '');
+    setTanganStaff(''); setTanganObserver(''); setTanganRoom(unitLabel);
     setTanganM1(false); setTanganM2(false); setTanganM3(false); setTanganM4(false); setTanganM5(false);
     setTanganMethod('5 Momen'); setTanganPatuhOverride(null);
     setVisiteRm(''); setVisiteDoctor(''); setVisiteTime('09:00');
-    setIdentitasStaff(''); setIdentitasObserver(''); setIdentitasRoom(UNIT_MAP[activeUnit]?.label || '');
+    setIdentitasStaff(''); setIdentitasObserver(''); setIdentitasRoom(unitLabel);
     setIdentitasName(''); setIdentitasRm(''); setIdentitasService('');
     setIdentitasNama(false); setIdentitasTgl(false);
-    setApdRoom(UNIT_MAP[activeUnit]?.label || ''); setApdStaff(''); setApdComp('Patuh');
+    setApdRoom(unitLabel); setApdStaff(''); setApdComp('Patuh');
     setJatuhRm(''); setJatuhAwal(false); setJatuhRe(false); setJatuhInv(false); setJatuhCedera(false);
     setScRm(''); setScDiag(''); setScOk(false);
     setWtrjRm(''); setWtrjDoc(''); setWtrjT1('08:00'); setWtrjT2('09:00');
@@ -287,7 +289,7 @@ export function DataEntryModal({
     setCpPerawat('Ya'); setCpFarmasi('Ya'); setCpGizi('Ya');
     setCpLos(0); setCpKet('');
     setErrors({});
-  }, []);
+  }, [activeUnit]);
 
   // ── Validate form ──
   const validate = useCallback((): boolean => {
@@ -408,9 +410,9 @@ export function DataEntryModal({
     }
   }, [validate, buildEntry, onSubmit, resetForm, onOpenChange]);
 
-  // ── Handle open change (reset on close) ──
+  // ── Handle open change (reset on open to fill unit room) ──
   const handleOpenChange = useCallback((newOpen: boolean) => {
-    if (!newOpen) resetForm();
+    if (newOpen) resetForm(); // Initialize room from current unit when opening
     onOpenChange(newOpen);
   }, [onOpenChange, resetForm]);
 
