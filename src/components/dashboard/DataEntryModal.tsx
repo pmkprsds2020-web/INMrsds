@@ -268,14 +268,14 @@ export function DataEntryModal({
   // ── Reset form when type changes ──
   const resetForm = useCallback(() => {
     setDate(todayStr());
-    setTanganStaff(''); setTanganObserver(''); setTanganRoom('');
+    setTanganStaff(''); setTanganObserver(''); setTanganRoom(UNIT_MAP[activeUnit]?.label || '');
     setTanganM1(false); setTanganM2(false); setTanganM3(false); setTanganM4(false); setTanganM5(false);
     setTanganMethod('5 Momen'); setTanganPatuhOverride(null);
     setVisiteRm(''); setVisiteDoctor(''); setVisiteTime('09:00');
     setIdentitasStaff(''); setIdentitasObserver(''); setIdentitasRoom(UNIT_MAP[activeUnit]?.label || '');
     setIdentitasName(''); setIdentitasRm(''); setIdentitasService('');
     setIdentitasNama(false); setIdentitasTgl(false);
-    setApdRoom(''); setApdStaff(''); setApdComp('Patuh');
+    setApdRoom(UNIT_MAP[activeUnit]?.label || ''); setApdStaff(''); setApdComp('Patuh');
     setJatuhRm(''); setJatuhAwal(false); setJatuhRe(false); setJatuhInv(false); setJatuhCedera(false);
     setScRm(''); setScDiag(''); setScOk(false);
     setWtrjRm(''); setWtrjDoc(''); setWtrjT1('08:00'); setWtrjT2('09:00');
@@ -428,8 +428,8 @@ export function DataEntryModal({
                 <Input value={tanganObserver} onChange={(e) => setTanganObserver(e.target.value)} placeholder="Nama observer" className="h-9 bg-muted/50 border-border text-sm" />
               </FormField>
             </div>
-            <FormField label="Ruangan" required error={errors.tanganRoom}>
-              <Input value={tanganRoom} onChange={(e) => setTanganRoom(e.target.value)} placeholder="Nama ruangan" className="h-9 bg-muted/50 border-border text-sm" />
+            <FormField label="Ruangan (otomatis dari unit login)" required error={errors.tanganRoom}>
+              <Input value={tanganRoom} readOnly className="h-9 bg-muted/30 border-border text-sm text-foreground/70 cursor-not-allowed" />
             </FormField>
             <FormField label="Momen Kebersihan Tangan">
               <div className="grid grid-cols-5 gap-2">
@@ -562,8 +562,8 @@ export function DataEntryModal({
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="Ruangan" required error={errors.apdRoom}>
-                <Input value={apdRoom} onChange={(e) => setApdRoom(e.target.value)} placeholder="Nama ruangan" className="h-9 bg-muted/50 border-border text-sm" />
+              <FormField label="Ruangan (otomatis dari unit login)" required error={errors.apdRoom}>
+                <Input value={apdRoom} readOnly className="h-9 bg-muted/30 border-border text-sm text-foreground/70 cursor-not-allowed" />
               </FormField>
               <FormField label="Nama Petugas" required error={errors.apdStaff}>
                 <Input value={apdStaff} onChange={(e) => setApdStaff(e.target.value)} placeholder="Nama petugas" className="h-9 bg-muted/50 border-border text-sm" />

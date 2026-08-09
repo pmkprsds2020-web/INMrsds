@@ -266,15 +266,18 @@ export function createDefaultEntry(type: IndicatorType, unitId: string, userId: 
     createdBy: userId,
   };
 
+  // Auto-fill room from the user's login unit name
+  const roomName = (UNIT_MAP[unitId]?.label) || '';
+
   switch (type) {
     case 'tangan':
-      return { ...base, staff: '', observer: '', room: '', m1: false, m2: false, m3: false, m4: false, m5: false, method: 'Handrub', patuh: null } as TanganEntry;
+      return { ...base, staff: '', observer: '', room: roomName, m1: false, m2: false, m3: false, m4: false, m5: false, method: 'Handrub', patuh: null } as TanganEntry;
     case 'visite':
       return { ...base, rm: '', doctor: '', time: '09:00' } as VisiteEntry;
     case 'identitas':
-      return { ...base, staff: '', observer: '', room: '', name: '', rm: '', service: '', nama: true, tgl: true } as IdentitasEntry;
+      return { ...base, staff: '', observer: '', room: roomName, name: '', rm: '', service: '', nama: true, tgl: true } as IdentitasEntry;
     case 'apd':
-      return { ...base, room: '', staff: '', comp: 'tidak' } as ApdEntry;
+      return { ...base, room: roomName, staff: '', comp: 'tidak' } as ApdEntry;
     case 'jatuh':
       return { ...base, rm: '', awal: true, re: true, inv: true, cedera: true } as JatuhEntry;
     case 'sc':

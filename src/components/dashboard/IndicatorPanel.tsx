@@ -1364,7 +1364,7 @@ function TanganTable({
                 <CellInput value={e.observer} onChange={(v) => onUpdate(e.id, { observer: v } as Partial<TanganEntry>)} placeholder="Observer" />
               </TableCell>
               <TableCell>
-                <CellInput value={e.room} onChange={(v) => onUpdate(e.id, { room: v } as Partial<TanganEntry>)} placeholder="Ruangan" />
+                <span className="text-xs text-foreground/70 px-1">{e.room || '—'}</span>
               </TableCell>
               <TableCell className="text-center"><CellCheckbox checked={e.m1} onCheckedChange={(v) => onUpdate(e.id, { m1: v } as Partial<TanganEntry>)} /></TableCell>
               <TableCell className="text-center"><CellCheckbox checked={e.m2} onCheckedChange={(v) => onUpdate(e.id, { m2: v } as Partial<TanganEntry>)} /></TableCell>
@@ -1513,7 +1513,7 @@ function IdentitasTable({
                 <CellInput value={e.observer} onChange={(v) => onUpdate(e.id, { observer: v } as Partial<IdentitasEntry>)} placeholder="Observer" />
               </TableCell>
               <TableCell>
-                <CellInput value={e.room} onChange={(v) => onUpdate(e.id, { room: v } as Partial<IdentitasEntry>)} placeholder="Ruangan" />
+                <span className="text-xs text-foreground/70 px-1">{e.room || '—'}</span>
               </TableCell>
               <TableCell>
                 <CellInput value={e.name} onChange={(v) => onUpdate(e.id, { name: v } as Partial<IdentitasEntry>)} placeholder="Nama" />
@@ -1585,7 +1585,7 @@ function ApdTable({
               <CellInput value={e.date} onChange={(v) => onUpdate(e.id, { date: v })} type="date" className="w-[130px]" />
             </TableCell>
             <TableCell>
-              <CellInput value={e.room} onChange={(v) => onUpdate(e.id, { room: v } as Partial<ApdEntry>)} placeholder="Ruangan" />
+              <span className="text-xs text-foreground/70 px-1">{e.room || '—'}</span>
             </TableCell>
             <TableCell>
               <CellInput value={e.staff} onChange={(v) => onUpdate(e.id, { staff: v } as Partial<ApdEntry>)} placeholder="Petugas" />
