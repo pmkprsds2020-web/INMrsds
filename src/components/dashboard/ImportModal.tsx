@@ -49,6 +49,7 @@ export interface ImportModalProps {
   type: IndicatorType;
   onImport: (entries: Omit<IndicatorEntry, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<void>;
   activeUnit: string;
+  userId: string;
 }
 
 /* ── Column mapping per indicator type ────────────────────────── */
@@ -174,6 +175,7 @@ export function ImportModal({
   type,
   onImport,
   activeUnit,
+  userId,
 }: ImportModalProps) {
   const [parsedRows, setParsedRows] = useState<Record<string, unknown>[]>([]);
   const [step, setStep] = useState<'upload' | 'preview'>('upload');
@@ -308,7 +310,7 @@ export function ImportModal({
   const convertRows = useCallback((): Omit<IndicatorEntry, 'id' | 'createdAt' | 'updatedAt'>[] => {
     return parsedRows.map((row) => {
       // Start with default entry
-      const base = createDefaultEntry(type, activeUnit, '') as Record<string, unknown>;
+      const base = createDefaultEntry(type, activeUnit, userId) as Record<string, unknown>;
 
       // Override with parsed values
       for (const col of columns) {

@@ -72,12 +72,27 @@ export async function createEntry(
   entry: Omit<IndicatorEntry, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
   const fields = entryToRowFields({ ...entry, unitId });
+
+  // Debug: verify session exists before insert
+  const { data: { session } } = await supabase.auth.getSession();
+  console.log('[createEntry] Current user:', session?.user?.id);
+  console.log('[createEntry] Insert payload fields:', { ...fields, data: '(omitted for brevity)' });
+  console.log('[createEntry] created_by value:', fields.created_by);
+
   const { data, error } = await supabase
     .from(TABLE)
     .insert(fields)
     .select('id')
     .single();
-  if (error) throw error;
+  if (error) {
+    console.error('[createEntry] Insert error:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw error;
+  }
   return data.id as string;
 }
 

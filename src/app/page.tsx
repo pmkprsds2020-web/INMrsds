@@ -400,7 +400,12 @@ function Dashboard() {
     if (!targetUnit || targetUnit === 'all') {
       throw new Error('Pilih unit terlebih dahulu untuk menambah data');
     }
-    const id = await createEntry(targetUnit, entry);
+    // Ensure createdBy is always set to the current user for RLS compliance
+    const entryWithOwner = {
+      ...entry,
+      createdBy: (entry as Record<string, unknown>).createdBy || user?.uid || '',
+    };
+    const id = await createEntry(targetUnit, entryWithOwner);
     addAuditLog('input', `Data ${entry.indicatorType} ditambahkan oleh unit ${UNIT_MAP[targetUnit]?.label || targetUnit}`, 'Input Data');
     // Refresh local state
     const newEntry = { ...entry, id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as IndicatorEntry;
@@ -436,7 +441,12 @@ function Dashboard() {
     if (!targetUnit || targetUnit === 'all') {
       throw new Error('Pilih unit terlebih dahulu untuk import data');
     }
-    const count = await batchImportEntries(targetUnit, importEntries);
+    // Ensure createdBy is always set to the current user for RLS compliance
+    const entriesWithOwner = importEntries.map(entry => ({
+      ...entry,
+      createdBy: (entry as Record<string, unknown>).createdBy || user?.uid || '',
+    }));
+    const count = await batchImportEntries(targetUnit, entriesWithOwner);
     addAuditLog('input', `Import ${count} baris data oleh unit ${UNIT_MAP[targetUnit]?.label || targetUnit}`, 'Import Excel');
     // Wait briefly for Firestore to propagate writes, then refresh
     await new Promise(resolve => setTimeout(resolve, 500));

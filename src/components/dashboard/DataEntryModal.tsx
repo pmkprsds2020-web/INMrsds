@@ -64,6 +64,7 @@ export interface DataEntryModalProps {
   onOpenChange: (open: boolean) => void;
   type: IndicatorType;
   activeUnit: string;
+  userId: string;
   onSubmit: (entry: Omit<IndicatorEntry, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   isLoading?: boolean;
 }
@@ -151,6 +152,7 @@ export function DataEntryModal({
   onOpenChange,
   type,
   activeUnit,
+  userId,
   onSubmit,
   isLoading = false,
 }: DataEntryModalProps) {
@@ -360,7 +362,7 @@ export function DataEntryModal({
       indicatorType: type,
       unitId: activeUnit,
       date,
-      createdBy: '',
+      createdBy: userId || '',
     };
 
     switch (type) {
@@ -389,7 +391,7 @@ export function DataEntryModal({
       default:
         return { ...base } as IndicatorEntry;
     }
-  }, [type, activeUnit, date, tanganStaff, tanganObserver, tanganRoom, tanganM1, tanganM2, tanganM3, tanganM4, tanganM5, tanganMethod, tanganPatuh, visiteRm, visiteDoctor, visiteTime, identitasStaff, identitasObserver, identitasRoom, identitasName, identitasRm, identitasService, identitasNama, identitasTgl, apdRoom, apdStaff, apdComp, jatuhRm, jatuhAwal, jatuhRe, jatuhInv, jatuhCedera, scRm, scDiag, scOk, wtrjRm, wtrjDoc, wtrjT1, wtrjT2, wtrjStChecked, opRm, opT1, opT2, opTertunda, opR, labRm, labExam, labT1, labT2, labNum, fornasNum, fornasNon, fornasNote, cpName, cpRm, cpDiag, cpVTerapi, cpVLab, cpVRad, cpVLain, cpVLainKet, cpPerawat, cpFarmasi, cpGizi, cpLos, cpKet]);
+  }, [type, activeUnit, userId, date, tanganStaff, tanganObserver, tanganRoom, tanganM1, tanganM2, tanganM3, tanganM4, tanganM5, tanganMethod, tanganPatuh, visiteRm, visiteDoctor, visiteTime, identitasStaff, identitasObserver, identitasRoom, identitasName, identitasRm, identitasService, identitasNama, identitasTgl, apdRoom, apdStaff, apdComp, jatuhRm, jatuhAwal, jatuhRe, jatuhInv, jatuhCedera, scRm, scDiag, scOk, wtrjRm, wtrjDoc, wtrjT1, wtrjT2, wtrjStChecked, opRm, opT1, opT2, opTertunda, opR, labRm, labExam, labT1, labT2, labNum, fornasNum, fornasNon, fornasNote, cpName, cpRm, cpDiag, cpVTerapi, cpVLab, cpVRad, cpVLain, cpVLainKet, cpPerawat, cpFarmasi, cpGizi, cpLos, cpKet]);
 
   // ── Handle submit ──
   const handleSubmit = useCallback(async () => {

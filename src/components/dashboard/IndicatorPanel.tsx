@@ -702,9 +702,11 @@ export function IndicatorPanel({
     try {
       await onAddEntry(entry);
       toastDataChange('add', 1);
-    } catch {
-      toast.error('Gagal menambahkan data');
-      throw new Error('Gagal menambahkan data');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal menambahkan data';
+      console.error('[handleDataEntrySubmit] Error:', err);
+      toast.error(message);
+      throw err; // re-throw so modal doesn't close on failure
     } finally {
       setDataEntryLoading(false);
     }
@@ -1263,6 +1265,7 @@ export function IndicatorPanel({
           type={type}
           onImport={onImport}
           activeUnit={activeUnit}
+          userId={userId}
         />
       )}
 
@@ -1272,6 +1275,7 @@ export function IndicatorPanel({
         onOpenChange={setDataEntryOpen}
         type={type}
         activeUnit={activeUnit}
+        userId={userId}
         onSubmit={handleDataEntrySubmit}
         isLoading={dataEntryLoading}
       />
