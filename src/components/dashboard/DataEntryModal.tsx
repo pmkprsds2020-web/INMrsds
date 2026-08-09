@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Hand,
@@ -410,9 +410,16 @@ export function DataEntryModal({
     }
   }, [validate, buildEntry, onSubmit, resetForm, onOpenChange]);
 
-  // ── Handle open change (reset on open to fill unit room) ──
+  // ── Auto-fill room from current unit when modal opens ──
+  useEffect(() => {
+    if (open) {
+      resetForm();
+    }
+  }, [open, resetForm]);
+
+  // ── Handle open change ──
   const handleOpenChange = useCallback((newOpen: boolean) => {
-    if (newOpen) resetForm(); // Initialize room from current unit when opening
+    if (!newOpen) resetForm(); // Clear form when closing
     onOpenChange(newOpen);
   }, [onOpenChange, resetForm]);
 
