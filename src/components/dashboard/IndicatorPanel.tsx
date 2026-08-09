@@ -96,6 +96,7 @@ import {
   type FornasEntry,
   type CpEntry,
   INDICATORS,
+  IDENTITAS_SERVICE_OPTIONS,
 } from '@/types';
 import { calculateStats, timeDiffMinutes, isVisitePatuh, todayStr } from '@/lib/calculations';
 
@@ -1521,7 +1522,16 @@ function IdentitasTable({
                 <CellInput value={e.rm} onChange={(v) => onUpdate(e.id, { rm: v } as Partial<IdentitasEntry>)} placeholder="No RM" />
               </TableCell>
               <TableCell>
-                <CellInput value={e.service} onChange={(v) => onUpdate(e.id, { service: v } as Partial<IdentitasEntry>)} placeholder="Pelayanan" />
+                <Select value={e.service} onValueChange={(v) => onUpdate(e.id, { service: v } as Partial<IdentitasEntry>)}>
+                  <SelectTrigger className="h-7 bg-muted/50 border-border text-xs min-w-[180px]">
+                    <SelectValue placeholder="Pelayanan" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border">
+                    {IDENTITAS_SERVICE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </TableCell>
               <TableCell className="text-center"><CellCheckbox checked={e.nama} onCheckedChange={(v) => onUpdate(e.id, { nama: v } as Partial<IdentitasEntry>)} /></TableCell>
               <TableCell className="text-center"><CellCheckbox checked={e.tgl} onCheckedChange={(v) => onUpdate(e.id, { tgl: v } as Partial<IdentitasEntry>)} /></TableCell>

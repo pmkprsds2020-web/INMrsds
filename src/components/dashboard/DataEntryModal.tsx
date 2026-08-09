@@ -55,6 +55,8 @@ import {
   type FornasEntry,
   type CpEntry,
   INDICATORS,
+  IDENTITAS_SERVICE_OPTIONS,
+  UNIT_MAP,
 } from '@/types';
 import { todayStr, isVisitePatuh, timeDiffMinutes } from '@/lib/calculations';
 
@@ -270,7 +272,7 @@ export function DataEntryModal({
     setTanganM1(false); setTanganM2(false); setTanganM3(false); setTanganM4(false); setTanganM5(false);
     setTanganMethod('5 Momen'); setTanganPatuhOverride(null);
     setVisiteRm(''); setVisiteDoctor(''); setVisiteTime('09:00');
-    setIdentitasStaff(''); setIdentitasObserver(''); setIdentitasRoom('');
+    setIdentitasStaff(''); setIdentitasObserver(''); setIdentitasRoom(UNIT_MAP[activeUnit]?.label || '');
     setIdentitasName(''); setIdentitasRm(''); setIdentitasService('');
     setIdentitasNama(false); setIdentitasTgl(false);
     setApdRoom(''); setApdStaff(''); setApdComp('Patuh');
@@ -309,6 +311,7 @@ export function DataEntryModal({
         if (!identitasRoom.trim()) newErrors.identitasRoom = 'Ruangan wajib diisi';
         if (!identitasName.trim()) newErrors.identitasName = 'Nama pasien wajib diisi';
         if (!identitasRm.trim()) newErrors.identitasRm = 'No. RM wajib diisi';
+        if (!identitasService) newErrors.identitasService = 'Silakan pilih jenis pelayanan';
         break;
       case 'apd':
         if (!apdRoom.trim()) newErrors.apdRoom = 'Ruangan wajib diisi';
@@ -352,7 +355,7 @@ export function DataEntryModal({
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [type, date, tanganStaff, tanganObserver, tanganRoom, visiteRm, visiteDoctor, visiteTime,
-    identitasStaff, identitasRoom, identitasName, identitasRm, apdRoom, apdStaff,
+    identitasStaff, identitasRoom, identitasName, identitasRm, identitasService, apdRoom, apdStaff,
     jatuhRm, scRm, scDiag, wtrjRm, wtrjDoc, wtrjT1, wtrjT2, opRm, opT1, opT2, opTertunda, opR,
     labRm, labExam, labT1, labT2, fornasNum, fornasNon, cpName, cpRm, cpDiag]);
 
@@ -518,8 +521,8 @@ export function DataEntryModal({
                 <Input value={identitasObserver} onChange={(e) => setIdentitasObserver(e.target.value)} placeholder="Nama observer" className="h-9 bg-muted/50 border-border text-sm" />
               </FormField>
             </div>
-            <FormField label="Ruangan" required error={errors.identitasRoom}>
-              <Input value={identitasRoom} onChange={(e) => setIdentitasRoom(e.target.value)} placeholder="Nama ruangan" className="h-9 bg-muted/50 border-border text-sm" />
+            <FormField label="Ruangan (otomatis dari unit login)" required error={errors.identitasRoom}>
+              <Input value={identitasRoom} readOnly className="h-9 bg-muted/30 border-border text-sm text-foreground/70 cursor-not-allowed" />
             </FormField>
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Nama Pasien" required error={errors.identitasName}>
@@ -529,8 +532,17 @@ export function DataEntryModal({
                 <Input value={identitasRm} onChange={(e) => setIdentitasRm(e.target.value)} placeholder="No. RM" className="h-9 bg-muted/50 border-border text-sm" />
               </FormField>
             </div>
-            <FormField label="Pelayanan">
-              <Input value={identitasService} onChange={(e) => setIdentitasService(e.target.value)} placeholder="Jenis pelayanan" className="h-9 bg-muted/50 border-border text-sm" />
+            <FormField label="Pelayanan" required error={errors.identitasService}>
+              <Select value={identitasService} onValueChange={setIdentitasService}>
+                <SelectTrigger className="h-9 bg-muted/50 border-border text-sm">
+                  <SelectValue placeholder="Pilih jenis pelayanan" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  {IDENTITAS_SERVICE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt} className="text-sm">{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormField>
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 cursor-pointer">

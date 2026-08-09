@@ -191,6 +191,21 @@ export interface CpEntry extends BaseEntry {
 
 export type IndicatorEntry = TanganEntry | VisiteEntry | IdentitasEntry | ApdEntry | JatuhEntry | ScEntry | WtrjEntry | OpEntry | LabEntry | FornasEntry | CpEntry;
 
+// Jenis pelayanan untuk indikator Identifikasi Pasien
+export const IDENTITAS_SERVICE_OPTIONS = [
+  'PEMBERIAN OBAT',
+  'PEMBERIAN CAIRAN INTRAVENA',
+  'PENCABUTAN GIGI',
+  'IMUNISASI',
+  'PEMASANGAN ALAT KONTRASEPSI',
+  'PERSALINAN',
+  'TINDAKAN KEGAWATDARURATAN',
+  'PENGAMBILAN SAMPEL',
+  'DLL',
+] as const;
+
+export type IdentitasService = (typeof IDENTITAS_SERVICE_OPTIONS)[number];
+
 // Audit log entry
 export interface AuditLogEntry {
   id: string;
