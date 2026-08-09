@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // "standalone" hanya diperlukan untuk self-host (Bun/Caddy).
+  // Di Vercel, standalone tidak dibutuhkan dan malah bikin build error
+  // (Vercel punya sistem serverless/file-tracing sendiri).
+  output: process.env.VERCEL ? undefined : "standalone",
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
