@@ -55,7 +55,7 @@ import {
   subscribeToAllIndicators,
   clearAuditLogs as firestoreClearAuditLogs,
   type AuditLogDocument,
-} from '@/lib/firestore';
+} from '@/lib/supabaseData';
 import {
   type TanganEntry,
   type VisiteEntry,

@@ -63,24 +63,23 @@ export default function ResetPasswordPage({ onNavigate }: AuthPageProps) {
   const passwordStrength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
 
   const verify = useCallback(async () => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const code = searchParams.get('oobCode');
-
-    if (!code) {
-      setVerifyState('invalid');
-      return;
+    // Supabase authenticates the browser directly from the emailed recovery
+    // link (no separate oobCode to extract from the URL). The SDK parses
+    // that link asynchronously right after mount, so retry briefly before
+    // giving up.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const email = await verifyResetCode();
+        setVerifiedEmail(email);
+        setOobCode('supabase-recovery-session');
+        setVerifyState('valid');
+        return;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
     }
-
-    setOobCode(code);
-
-    try {
-      const email = await verifyResetCode(code);
-      setVerifiedEmail(email);
-      setVerifyState('valid');
-    } catch {
-      setVerifyState('invalid');
-      toast.error('Link reset password tidak valid atau sudah kadaluarsa');
-    }
+    setVerifyState('invalid');
+    toast.error('Link reset password tidak valid atau sudah kadaluarsa');
   }, [verifyResetCode]);
 
   useEffect(() => {

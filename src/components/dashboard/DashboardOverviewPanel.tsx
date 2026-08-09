@@ -58,7 +58,7 @@ import {
   UNIT_MAP,
 } from '@/types';
 import { calculateStats, type IndicatorStats } from '@/lib/calculations';
-import { getFilteredEntries } from '@/lib/firestore';
+import { getFilteredEntries } from '@/lib/supabaseData';
 import { OnboardingGuide } from '@/components/dashboard/OnboardingGuide';
 
 /* ── Register Chart.js components ─────────────────────────────── */

@@ -15,15 +15,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-  updatePassword,
-  updateProfile,
-  deleteUser,
-} from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { UNIT_MAP } from '@/types';
 
@@ -71,18 +63,25 @@ function getPasswordStrength(pass: string): { score: number; label: string; colo
   return { score, label: 'Kuat', color: '#6ee7b7' };
 }
 
-/* ── Firebase error messages in Indonesian ─────────────────────── */
-function getFirebaseErrorMessage(code: string): string {
-  const messages: Record<string, string> = {
-    'auth/requires-recent-login': 'Sesi Anda sudah kedaluwarsa. Silakan logout dan login kembali sebelum mengubah password.',
-    'auth/wrong-password': 'Password saat ini salah.',
-    'auth/invalid-credential': 'Kredensial tidak valid. Silakan periksa password Anda.',
-    'auth/weak-password': 'Password baru terlalu lemah (minimal 6 karakter).',
-    'auth/too-many-requests': 'Terlalu banyak percobaan. Silakan coba lagi nanti.',
-    'auth/user-not-found': 'Pengguna tidak ditemukan.',
-    'auth/network-request-failed': 'Koneksi jaringan gagal. Periksa koneksi internet Anda.',
-  };
-  return messages[code] || 'Terjadi kesalahan. Silakan coba lagi.';
+/* ── Supabase error messages in Indonesian ─────────────────────── */
+function getFirebaseErrorMessage(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
+    return 'Password saat ini salah.';
+  }
+  if (lower.includes('password') && lower.includes('at least')) {
+    return 'Password baru terlalu lemah (minimal 6 karakter).';
+  }
+  if (lower.includes('rate limit') || lower.includes('too many requests')) {
+    return 'Terlalu banyak percobaan. Silakan coba lagi nanti.';
+  }
+  if (lower.includes('user not found')) {
+    return 'Pengguna tidak ditemukan.';
+  }
+  if (lower.includes('network')) {
+    return 'Koneksi jaringan gagal. Periksa koneksi internet Anda.';
+  }
+  return message || 'Terjadi kesalahan. Silakan coba lagi.';
 }
 
 /* ── Unit entries (filter out 'all') ──────────────────────────── */
@@ -166,20 +165,19 @@ export function UserProfilePanel({ open, onClose }: UserProfilePanelProps) {
 
     setIsUpdatingProfile(true);
     try {
-      // Update Firebase Auth profile
+      // Update Supabase Auth user metadata
       if (trimmedName !== user.displayName) {
-        await updateProfile(user, { displayName: trimmedName });
+        const { error } = await supabase.auth.updateUser({ data: { display_name: trimmedName } });
+        if (error) throw error;
       }
 
-      // Update Firestore user document
-      const userRef = doc(db, 'users', user.uid);
-      const updateData: Record<string, string> = { displayName: trimmedName };
-
+      // Update the profiles table row
+      const updateData: Record<string, string> = { display_name: trimmedName };
       if (selectedUnitId && selectedUnitId !== unitId) {
-        updateData.unitId = selectedUnitId;
+        updateData.unit_id = selectedUnitId;
       }
-
-      await updateDoc(userRef, updateData);
+      const { error: profileErr } = await supabase.from('profiles').update(updateData).eq('id', user.uid);
+      if (profileErr) throw profileErr;
 
       // Update local unit state if changed
       if (selectedUnitId && selectedUnitId !== unitId) {
@@ -190,8 +188,8 @@ export function UserProfilePanel({ open, onClose }: UserProfilePanelProps) {
       toast.success('Profil berhasil diperbarui');
       setTimeout(() => setProfileSaved(false), 2000);
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      toast.error(getFirebaseErrorMessage(error.code || ''));
+      const error = err as { message?: string };
+      toast.error(getFirebaseErrorMessage(error.message || ''));
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -220,12 +218,17 @@ export function UserProfilePanel({ open, onClose }: UserProfilePanelProps) {
 
     setIsChangingPassword(true);
     try {
-      // Reauthenticate user first
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(user, credential);
+      // Supabase has no separate "reauthenticate" call — verify the current
+      // password by signing in with it, which also refreshes the session.
+      const { error: reauthErr } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (reauthErr) throw reauthErr;
 
       // Update password
-      await updatePassword(user, newPassword);
+      const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateErr) throw updateErr;
 
       // Clear fields
       setCurrentPassword('');
@@ -234,8 +237,8 @@ export function UserProfilePanel({ open, onClose }: UserProfilePanelProps) {
 
       toast.success('Password berhasil diubah');
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      toast.error(getFirebaseErrorMessage(error.code || ''));
+      const error = err as { message?: string };
+      toast.error(getFirebaseErrorMessage(error.message || ''));
     } finally {
       setIsChangingPassword(false);
     }
@@ -256,19 +259,25 @@ export function UserProfilePanel({ open, onClose }: UserProfilePanelProps) {
 
     setIsDeletingAccount(true);
     try {
-      // Reauthenticate
-      const credential = EmailAuthProvider.credential(user.email, deletePassword);
-      await reauthenticateWithCredential(user, credential);
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body.error || 'Gagal menghapus akun.');
+      }
 
-      // Delete user
-      await deleteUser(user);
+      // Sign out locally now that the account no longer exists.
+      await supabase.auth.signOut();
 
       toast.success('Akun berhasil dihapus');
       setDeleteDialogOpen(false);
       onClose();
     } catch (err: unknown) {
-      const error = err as { code?: string };
-      toast.error(getFirebaseErrorMessage(error.code || ''));
+      const error = err as { message?: string };
+      toast.error(getFirebaseErrorMessage(error.message || ''));
     } finally {
       setIsDeletingAccount(false);
     }

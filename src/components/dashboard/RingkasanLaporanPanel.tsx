@@ -41,7 +41,7 @@ import {
   INDICATORS,
   UNIT_MAP,
 } from '@/types';
-import { getFilteredEntries } from '@/lib/firestore';
+import { getFilteredEntries } from '@/lib/supabaseData';
 import { calculateStats, type IndicatorStats } from '@/lib/calculations';
 
 /* ── Types ────────────────────────────────────────────────────── */

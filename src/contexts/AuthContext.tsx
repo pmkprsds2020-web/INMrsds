@@ -1,25 +1,28 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
-  User,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  confirmPasswordReset,
-  verifyPasswordResetCode,
-  updateProfile,
-  GoogleAuthProvider,
-  signInWithPopup,
-  sendEmailVerification,
-} from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
+
+/**
+ * App-facing user shape. Mirrors the subset of the old `firebase/auth` User
+ * object that the rest of the app reads (user.uid, user.email,
+ * user.displayName, user.emailVerified, user.metadata.*), so components
+ * built against Firebase's shape keep working unchanged.
+ */
+export interface AppUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  emailVerified: boolean;
+  metadata: {
+    creationTime: string | undefined;
+    lastSignInTime: string | undefined;
+  };
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   loading: boolean;
   unitId: string | null;
   login: (email: string, password: string) => Promise<void>;
@@ -27,7 +30,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   confirmReset: (code: string, newPassword: string) => Promise<void>;
-  verifyResetCode: (code: string) => Promise<string>;
+  verifyResetCode: () => Promise<string>;
   loginWithGoogle: () => Promise<void>;
   setUnitId: (unitId: string) => Promise<void>;
   sendVerification: () => Promise<void>;
@@ -37,110 +40,182 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const useAuth = () => useContext(AuthContext);
 
-// Firestore collection for user profiles
-const USERS_COLLECTION = 'users';
+const PROFILES_TABLE = 'profiles';
+
+/** Maps a Supabase auth error to a Firebase-style `code` so existing UI
+ *  error-handling (which switches on `error.code === 'auth/...'`) keeps
+ *  working without rewriting every page. */
+function toFirebaseLikeError(err: unknown): Error & { code: string } {
+  const message = err instanceof Error ? err.message : String(err);
+  const lower = message.toLowerCase();
+  let code = 'auth/unknown-error';
+
+  if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
+    code = 'auth/invalid-credential';
+  } else if (lower.includes('user not found')) {
+    code = 'auth/user-not-found';
+  } else if (lower.includes('already registered') || lower.includes('already been registered') || lower.includes('user already exists')) {
+    code = 'auth/email-already-in-use';
+  } else if (lower.includes('password') && lower.includes('at least')) {
+    code = 'auth/weak-password';
+  } else if (lower.includes('password') && lower.includes('weak')) {
+    code = 'auth/weak-password';
+  } else if (lower.includes('invalid email') || lower.includes('unable to validate email')) {
+    code = 'auth/invalid-email';
+  } else if (lower.includes('rate limit') || lower.includes('too many requests')) {
+    code = 'auth/too-many-requests';
+  } else if (lower.includes('expired')) {
+    code = 'auth/expired-action-code';
+  } else if (lower.includes('token') && (lower.includes('invalid') || lower.includes('not found'))) {
+    code = 'auth/invalid-action-code';
+  } else if (lower.includes('disabled') || lower.includes('banned')) {
+    code = 'auth/user-disabled';
+  }
+
+  const wrapped = new Error(message) as Error & { code: string };
+  wrapped.code = code;
+  return wrapped;
+}
+
+function toAppUser(user: SupabaseUser | null | undefined): AppUser | null {
+  if (!user) return null;
+  return {
+    uid: user.id,
+    email: user.email ?? null,
+    displayName: (user.user_metadata?.display_name as string) ?? null,
+    emailVerified: !!user.email_confirmed_at,
+    metadata: {
+      creationTime: user.created_at,
+      lastSignInTime: user.last_sign_in_at,
+    },
+  };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [unitId, setUnitIdState] = useState<string | null>(null);
+  const recoveryEmailRef = useRef<string | null>(null);
+
+  const fetchUnitId = async (uid: string) => {
+    try {
+      const { data, error } = await supabase
+        .from(PROFILES_TABLE)
+        .select('unit_id')
+        .eq('id', uid)
+        .maybeSingle();
+      if (!error && data) {
+        setUnitIdState((data.unit_id as string) || null);
+      }
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
+    }
+  };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        // Fetch user's unit assignment from Firestore
-        try {
-          const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            setUnitIdState(data.unitId || null);
-          }
-        } catch (err) {
-          console.error('Error fetching user profile:', err);
-        }
+    // Restore any existing session on first load.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(toAppUser(session?.user));
+      if (session?.user) fetchUnitId(session.user.id);
+      setLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Remember the email associated with the recovery link; used by
+        // verifyResetCode() on the reset-password page.
+        recoveryEmailRef.current = session?.user?.email ?? null;
+      }
+
+      setUser(toAppUser(session?.user));
+      if (session?.user) {
+        await fetchUnitId(session.user.id);
       } else {
         setUnitIdState(null);
       }
       setLoading(false);
     });
-    return unsubscribe;
+
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    // Fetch unit after login
-    try {
-      const userDoc = await getDoc(doc(db, USERS_COLLECTION, cred.user.uid));
-      if (userDoc.exists()) {
-        setUnitIdState(userDoc.data().unitId || null);
-      }
-    } catch (err) {
-      console.error('Error fetching user profile after login:', err);
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw toFirebaseLikeError(error);
   };
 
   const signup = async (email: string, password: string, displayName: string, selectedUnitId: string) => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(cred.user, { displayName });
-    // Send email verification
-    try {
-      await sendEmailVerification(cred.user);
-    } catch (err) {
-      console.error('Error sending email verification:', err);
-    }
-    // Store user profile with unit assignment in Firestore
-    await setDoc(doc(db, USERS_COLLECTION, cred.user.uid), {
+    const { data, error } = await supabase.auth.signUp({
       email,
-      displayName,
-      unitId: selectedUnitId,
-      role: 'user',
-      emailVerified: false,
-      createdAt: serverTimestamp(),
+      password,
+      options: {
+        data: {
+          display_name: displayName,
+          unit_id: selectedUnitId,
+        },
+      },
     });
-    setUnitIdState(selectedUnitId);
+    if (error) throw toFirebaseLikeError(error);
+
+    // A DB trigger (handle_new_user) creates the `profiles` row from the
+    // signup metadata above. If the session came back immediately (email
+    // confirmation disabled), reflect the unit right away.
+    if (data.session) {
+      setUnitIdState(selectedUnitId);
+    }
   };
 
   const logout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     setUnitIdState(null);
   };
 
   const resetPassword = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/?page=reset` : undefined,
+    });
+    if (error) throw toFirebaseLikeError(error);
   };
 
-  const confirmReset = async (code: string, newPassword: string) => {
-    await confirmPasswordReset(auth, code, newPassword);
+  // Supabase's recovery flow authenticates the browser via the emailed link
+  // itself (no separate oobCode to redeem) — by the time this resolves, the
+  // PASSWORD_RECOVERY event above should already have fired. `_code` is
+  // accepted for signature compatibility with the old Firebase-based pages.
+  const confirmReset = async (_code: string, newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw toFirebaseLikeError(error);
   };
 
-  const verifyResetCode = async (code: string) => {
-    return await verifyPasswordResetCode(auth, code);
+  const verifyResetCode = async (): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const email = session?.user?.email ?? recoveryEmailRef.current;
+    if (!session || !email) {
+      throw toFirebaseLikeError(new Error('invalid or expired reset link'));
+    }
+    return email;
   };
 
   const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    const cred = await signInWithPopup(auth, provider);
-    // Check if user profile exists, if not create one
-    const userDoc = await getDoc(doc(db, USERS_COLLECTION, cred.user.uid));
-    if (!userDoc.exists()) {
-      await setDoc(doc(db, USERS_COLLECTION, cred.user.uid), {
-        email: cred.user.email,
-        displayName: cred.user.displayName,
-        unitId: null,
-        role: 'user',
-        createdAt: serverTimestamp(),
-      });
-    } else {
-      setUnitIdState(userDoc.data().unitId || null);
-    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+      },
+    });
+    if (error) throw toFirebaseLikeError(error);
+    // Supabase OAuth redirects the whole page; profile creation for new
+    // Google users is handled by the same handle_new_user DB trigger.
   };
 
   const setUnitId = async (id: string) => {
     setUnitIdState(id);
     if (user?.uid) {
       try {
-        await updateDoc(doc(db, USERS_COLLECTION, user.uid), { unitId: id });
+        const { error } = await supabase
+          .from(PROFILES_TABLE)
+          .update({ unit_id: id })
+          .eq('id', user.uid);
+        if (error) throw error;
       } catch (err) {
         console.error('Failed to persist unit change:', err);
       }
@@ -148,12 +223,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const sendVerification = async () => {
-    if (auth.currentUser) {
-      await sendEmailVerification(auth.currentUser);
-    } else {
+    if (!user?.email) {
       throw new Error('Tidak ada pengguna yang login');
     }
-   };
+    const { error } = await supabase.auth.resend({ type: 'signup', email: user.email });
+    if (error) throw toFirebaseLikeError(error);
+  };
 
   return (
     <AuthContext.Provider value={{

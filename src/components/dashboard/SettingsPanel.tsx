@@ -207,8 +207,8 @@ export function SettingsPanel({
     });
   }, []);
 
-  // Firebase status check (simple static indicator)
-  const firebaseStatus: 'checking' | 'connected' | 'error' = 'connected';
+  // Supabase status check (simple static indicator)
+  const supabaseStatus: 'checking' | 'connected' | 'error' = 'connected';
 
   return (
     <AnimatePresence>
@@ -429,26 +429,26 @@ export function SettingsPanel({
                       </Badge>
                     </div>
 
-                    {/* Firebase status */}
+                    {/* Supabase status */}
                     <div className="flex items-center justify-between py-1">
                       <div className="flex items-center gap-2">
                         <Flame className="size-3.5 text-orange-400" />
-                        <span className="text-sm text-foreground/80">Firebase</span>
+                        <span className="text-sm text-foreground/80">Supabase</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <div
                           className={`size-2 rounded-full ${
-                            firebaseStatus === 'connected'
+                            supabaseStatus === 'connected'
                               ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
-                              : firebaseStatus === 'error'
+                              : supabaseStatus === 'error'
                                 ? 'bg-red-400'
                                 : 'bg-amber-400 animate-pulse'
                           }`}
                         />
                         <span className="text-[10px] text-muted-foreground">
-                          {firebaseStatus === 'connected'
+                          {supabaseStatus === 'connected'
                             ? 'Terhubung'
-                            : firebaseStatus === 'error'
+                            : supabaseStatus === 'error'
                               ? 'Gagal'
                               : 'Memeriksa...'}
                         </span>
@@ -459,7 +459,7 @@ export function SettingsPanel({
                     <div className="rounded-lg bg-muted/30 border border-border p-3 mt-2">
                       <p className="text-[10px] text-muted-foreground leading-relaxed">
                         Dashboard Mutu RS — Sistem Monitoring Indikator Mutu Rumah Sakit.
-                        Dibangun dengan Next.js 16, React 19, Firebase, shadcn/ui, dan Tailwind CSS.
+                        Dibangun dengan Next.js 16, React 19, Supabase, shadcn/ui, dan Tailwind CSS.
                       </p>
                       <p className="text-[10px] text-muted-foreground/60 mt-1.5">
                         © {new Date().getFullYear()} Dashboard Mutu RS. All rights reserved.
