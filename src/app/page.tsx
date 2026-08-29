@@ -125,6 +125,7 @@ function Dashboard() {
   // lihat src/components/dashboard/ikp/. Tidak memengaruhi hak akses modul
   // INM lain, yang masih memakai `role` seperti sebelumnya.
   const canReviewIkp = role === 'admin' || (ikpRoles ?? []).some((r) => ['verifikator', 'tim_mutu', 'pimpinan'].includes(r));
+  const isIkpAdmin = role === 'admin';
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -742,6 +743,7 @@ function Dashboard() {
           userName={user?.displayName || user?.email || 'Pengguna'}
           activeUnit={activeUnit}
           canReview={canReviewIkp}
+          isAdmin={isIkpAdmin}
           onNavigate={(tab) => setActiveTab(tab)}
         />
       );

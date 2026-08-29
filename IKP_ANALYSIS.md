@@ -185,9 +185,10 @@ di lingkungan Anda sebelum deploy.
 **Sudah**: menu sidebar, dashboard + filter, form pelaporan (draft/submit),
 nomor otomatis, klasifikasi, grading, workflow status, investigasi, analisis
 (ringkas), tindak lanjut + PIC + deadline + indikator terlambat, notifikasi
-(via audit log existing), audit trail, role/permission (RLS + `ikp_roles`),
-attachment (dengan validasi tipe/ukuran & RLS Storage), statistik dashboard,
-filter, export CSV, responsive (pakai komponen existing yang sudah responsif).
+(via audit log existing), audit trail, role/permission (RLS + `ikp_roles`
++ **UI Manajemen Pengguna & Role untuk admin**), attachment (dengan validasi
+tipe/ukuran & RLS Storage), statistik dashboard, filter, export CSV,
+responsive (pakai komponen existing yang sudah responsif).
 
 **Belum / perlu iterasi lanjutan** (di luar scope realistis satu batch ini):
 - Export ke format **Excel (.xlsx)** asli dan **PDF** — saat ini export berupa
@@ -205,13 +206,28 @@ filter, export CSV, responsive (pakai komponen existing yang sudah responsif).
 
 1. Jalankan `supabase/migration_ikp.sql` di Supabase SQL Editor (setelah
    `migration.sql` yang lama, kalau belum pernah dijalankan).
-2. Beri peran IKP ke user yang relevan:
+2. **Bootstrap admin pertama (WAJIB, satu kali, lewat SQL)** — sebelum ini,
+   tidak ada satupun pengguna yang bisa membuka menu "Manajemen Pengguna &
+   Role", karena aksesnya memang dijaga ketat (least privilege): hanya admin
+   yang boleh mengubah role. Jalankan di Supabase SQL Editor:
    ```sql
-   update public.profiles set ikp_roles = array['tim_mutu']
-   where email = 'kepala.mutu@rsanda.com';
+   update public.profiles set role = 'admin'
+   where email = 'email_akun_anda@contoh.com';
    ```
-   User dengan `role = 'admin'` otomatis dapat semua akses reviewer IKP.
+   Setelah ini, login dengan akun tersebut → buka **IKP / Keselamatan Pasien
+   → Master Data IKP** → akan muncul panel **"Manajemen Pengguna & Role"**
+   di bagian atas (hanya terlihat oleh admin). Dari situ, admin bisa mengatur
+   role `user`/`admin` dan peran IKP (`Verifikator`/`Tim Mutu`/`Pimpinan`)
+   untuk semua pengguna lain **tanpa perlu SQL lagi**.
 3. `bun install && bun run build` (atau `npm install && npm run build`) untuk
    verifikasi build penuh di lingkungan Anda.
 4. Tinjau seluruh poin **"Perlu konfirmasi"** di atas bersama Tim
    Keselamatan Pasien sebelum go-live.
+
+### Catatan keamanan soal role admin
+Pencabutan/pemberian role `admin` **tidak bisa dilakukan pada akun sendiri**
+lewat panel ini (tombol akan menolak) — mencegah admin tidak sengaja
+mengunci dirinya sendiri dari sistem. Semua perubahan role juga tetap
+ditegakkan oleh RLS di database (`profiles_update_own_or_admin`), jadi
+proteksi ini bukan cuma di tampilan UI.
+

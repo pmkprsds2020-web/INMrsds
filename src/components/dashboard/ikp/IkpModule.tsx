@@ -26,12 +26,14 @@ interface IkpModuleProps {
   activeUnit: string;
   /** true untuk role verifikator/tim_mutu/pimpinan/admin (lihat page.tsx). */
   canReview: boolean;
+  /** true HANYA untuk role='admin' — dipakai gerbang Manajemen Pengguna. */
+  isAdmin: boolean;
   onNavigate: (tab: string) => void;
 }
 
 type DetailTarget = { incidentId: string; focusTab: string } | null;
 
-export function IkpModule({ activeTab, userId, userName, activeUnit, canReview, onNavigate }: IkpModuleProps) {
+export function IkpModule({ activeTab, userId, userName, activeUnit, canReview, isAdmin, onNavigate }: IkpModuleProps) {
   const [detail, setDetail] = useState<DetailTarget>(null);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
 
@@ -87,7 +89,7 @@ export function IkpModule({ activeTab, userId, userName, activeUnit, canReview, 
       return <IkpLaporanPanel />;
 
     case 'ikp-master':
-      return <IkpMasterDataPanel />;
+      return <IkpMasterDataPanel isAdmin={isAdmin} currentUserId={userId} />;
 
     case 'ikp-audit':
       return <IkpAuditTrailPanel />;
