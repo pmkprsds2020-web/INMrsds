@@ -69,9 +69,16 @@ const TYPE_CONFIG: Record<
     label: 'Mapping',
     ring: 'ring-amber-500/30',
   },
+  ikp: {
+    icon: <ShieldAlert className="size-3.5" />,
+    bg: 'bg-orange-500/20',
+    text: 'text-orange-400',
+    label: 'IKP',
+    ring: 'ring-orange-500/30',
+  },
 };
 
-type FilterType = 'all' | 'block' | 'login' | 'input' | 'mapping';
+type FilterType = 'all' | 'block' | 'login' | 'input' | 'mapping' | 'ikp';
 
 /* ── Format timestamp ─────────────────────────────────────────── */
 function formatTs(ts: string): string {
@@ -249,6 +256,7 @@ export function NotificationPanel({
                   { key: 'input', label: 'Input' },
                   { key: 'block', label: 'Blokir' },
                   { key: 'mapping', label: 'Mapping' },
+                  { key: 'ikp', label: 'IKP' },
                 ] as { key: FilterType; label: string }[]
               ).map((tab) => (
                 <button

@@ -209,7 +209,9 @@ export type IdentitasService = (typeof IDENTITAS_SERVICE_OPTIONS)[number];
 // Audit log entry
 export interface AuditLogEntry {
   id: string;
-  type: 'block' | 'login' | 'input' | 'mapping';
+  // 'ikp' ditambahkan untuk modul Pelaporan Insiden Keselamatan Pasien —
+  // lihat src/components/dashboard/ikp/. Tidak mengubah entri lama.
+  type: 'block' | 'login' | 'input' | 'mapping' | 'ikp';
   msg: string;
   badge: string;
   ts: string;

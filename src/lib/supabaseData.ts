@@ -310,7 +310,7 @@ export function subscribeToAllIndicators(
 
 export interface AuditLogDocument {
   id?: string;
-  type: 'block' | 'login' | 'input' | 'mapping';
+  type: 'block' | 'login' | 'input' | 'mapping' | 'ikp';
   msg: string;
   badge: string;
   ts: string;

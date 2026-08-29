@@ -11,6 +11,7 @@ import {
   ArrowRightLeft,
   Filter,
   Circle,
+  ClipboardList,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale/id';
@@ -73,9 +74,17 @@ const TYPE_CONFIG: Record<
     ring: 'ring-amber-500/30',
     line: 'bg-amber-500/30',
   },
+  ikp: {
+    icon: <ClipboardList className="size-3.5" />,
+    bg: 'bg-orange-500/20',
+    text: 'text-orange-400',
+    label: 'IKP',
+    ring: 'ring-orange-500/30',
+    line: 'bg-orange-500/30',
+  },
 };
 
-type FilterType = 'all' | 'block' | 'login' | 'input' | 'mapping';
+type FilterType = 'all' | 'block' | 'login' | 'input' | 'mapping' | 'ikp';
 
 /* ── Format timestamp ─────────────────────────────────────────── */
 function formatTs(ts: string): string {
@@ -242,6 +251,9 @@ export function AuditTrailPanel({
                   </SelectItem>
                   <SelectItem value="mapping" className="text-foreground/80 text-xs focus:bg-muted/50 focus:text-foreground">
                     Mapping
+                  </SelectItem>
+                  <SelectItem value="ikp" className="text-foreground/80 text-xs focus:bg-muted/50 focus:text-foreground">
+                    IKP
                   </SelectItem>
                 </SelectContent>
               </Select>

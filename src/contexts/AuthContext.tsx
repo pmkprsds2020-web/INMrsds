@@ -25,6 +25,10 @@ interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   unitId: string | null;
+  /** role dasar dari tabel profiles ('user' | 'admin'). */
+  role: string | null;
+  /** peran tambahan khusus modul IKP ('verifikator' | 'tim_mutu' | 'pimpinan'). */
+  ikpRoles: string[];
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string, unitId: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -95,17 +99,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [unitId, setUnitIdState] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [ikpRoles, setIkpRoles] = useState<string[]>([]);
   const recoveryEmailRef = useRef<string | null>(null);
 
   const fetchUnitId = async (uid: string) => {
     try {
-      const { data, error } = await supabase
+      // ikp_roles hanya ada setelah supabase/migration_ikp.sql dijalankan.
+      // Coba sertakan; kalau kolom belum ada, fallback ke query lama supaya
+      // unit_id/role (fitur existing) tetap jalan meski migrasi IKP belum
+      // diterapkan.
+      let { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .select('unit_id')
+        .select('unit_id, role, ikp_roles')
         .eq('id', uid)
         .maybeSingle();
+
+      if (error) {
+        const fallback = await supabase
+          .from(PROFILES_TABLE)
+          .select('unit_id, role')
+          .eq('id', uid)
+          .maybeSingle();
+        data = fallback.data as typeof data;
+        error = fallback.error;
+      }
+
       if (!error && data) {
         setUnitIdState((data.unit_id as string) || null);
+        setRole((data.role as string) ?? 'user');
+        setIkpRoles((data as { ikp_roles?: string[] }).ikp_roles ?? []);
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
@@ -132,6 +155,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await fetchUnitId(session.user.id);
       } else {
         setUnitIdState(null);
+        setRole(null);
+        setIkpRoles([]);
       }
       setLoading(false);
     });
@@ -168,6 +193,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await supabase.auth.signOut();
     setUnitIdState(null);
+    setRole(null);
+    setIkpRoles([]);
   };
 
   const resetPassword = async (email: string) => {
@@ -235,6 +262,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       loading,
       unitId,
+      role,
+      ikpRoles,
       login,
       signup,
       logout,

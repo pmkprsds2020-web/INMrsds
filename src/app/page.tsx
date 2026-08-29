@@ -28,6 +28,7 @@ import { ComplianceTimeline } from '@/components/dashboard/ComplianceTimeline';
 import { QuickActionsWidget } from '@/components/dashboard/QuickActionsWidget';
 import { CommandPalette } from '@/components/dashboard/CommandPalette';
 import { DataExportTemplates } from '@/components/dashboard/DataExportTemplates';
+import { IkpModule } from '@/components/dashboard/ikp/IkpModule';
 import { useKeyboardShortcuts, getDashboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import {
   Sheet,
@@ -118,7 +119,12 @@ function AppContent() {
 // ──────────────────────────────────────────────
 
 function Dashboard() {
-  const { user, unitId, logout, sendVerification } = useAuth();
+  const { user, unitId, role, ikpRoles, logout, sendVerification } = useAuth();
+
+  // Hak akses reviewer modul IKP (verifikator/tim_mutu/pimpinan/admin) —
+  // lihat src/components/dashboard/ikp/. Tidak memengaruhi hak akses modul
+  // INM lain, yang masih memakai `role` seperti sebelumnya.
+  const canReviewIkp = role === 'admin' || (ikpRoles ?? []).some((r) => ['verifikator', 'tim_mutu', 'pimpinan'].includes(r));
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -193,7 +199,7 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     async function loadEntries() {
-      if (!activeTab || activeTab === 'tren' || activeTab === 'kepatuhan' || activeTab === 'overview' || activeTab === 'ringkasan' || activeTab === 'ai-insights' || activeTab === 'activity-heatmap' || activeTab === 'data-quality' || activeTab === 'compliance-timeline' || activeTab === 'export-templates') {
+      if (!activeTab || activeTab === 'tren' || activeTab === 'kepatuhan' || activeTab === 'overview' || activeTab === 'ringkasan' || activeTab === 'ai-insights' || activeTab === 'activity-heatmap' || activeTab === 'data-quality' || activeTab === 'compliance-timeline' || activeTab === 'export-templates' || activeTab.startsWith('ikp-')) {
         setIsLoading(false);
         return;
       }
@@ -304,7 +310,7 @@ function Dashboard() {
       }
     }
     // Override with current tab's filtered entries for accuracy
-    if (activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'overview' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && activeTab !== 'export-templates') {
+    if (activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'overview' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && activeTab !== 'export-templates' && !activeTab.startsWith('ikp-')) {
       counts[activeTab] = entries.length;
     }
     return counts;
@@ -630,7 +636,7 @@ function Dashboard() {
   useKeyboardShortcuts({
     shortcuts: getDashboardShortcuts({
       onAddNew: () => {
-        if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && !accessBlocked) {
+        if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && !activeTab.startsWith('ikp-') && !accessBlocked) {
           const entry = createDefaultEntry(activeTab as IndicatorType, activeUnit, user?.uid || '');
           handleAddEntry(entry).catch(() => {});
         }
@@ -725,6 +731,18 @@ function Dashboard() {
         <ComplianceTimeline
           allEntries={allEntries}
           activeUnit={activeUnit}
+        />
+      );
+    }
+    if (activeTab.startsWith('ikp-')) {
+      return (
+        <IkpModule
+          activeTab={activeTab}
+          userId={user?.uid || ''}
+          userName={user?.displayName || user?.email || 'Pengguna'}
+          activeUnit={activeUnit}
+          canReview={canReviewIkp}
+          onNavigate={(tab) => setActiveTab(tab)}
         />
       );
     }
@@ -939,7 +957,7 @@ function Dashboard() {
         {/* Quick Actions Widget */}
         <QuickActionsWidget
           onAddEntry={() => {
-            if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && !accessBlocked) {
+            if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && !activeTab.startsWith('ikp-') && !accessBlocked) {
               const entry = createDefaultEntry(activeTab as IndicatorType, activeUnit, user?.uid || '');
               handleAddEntry(entry).catch(() => {});
             }
