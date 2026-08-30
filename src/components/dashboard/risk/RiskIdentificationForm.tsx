@@ -74,12 +74,12 @@ export function RiskIdentificationForm({ userId, userName, activeUnit, draft, on
   async function persistIdentification(): Promise<string | undefined> {
     setSaving(true);
     try {
+      if (!form.unitLokasi || !form.category || !form.risiko || !form.sebabInsiden || !form.efekDampak) {
+        toastError('Lengkapi field wajib', { description: 'Unit, Kategori, Risiko, Sebab, dan Efek/Dampak wajib diisi.' });
+        return undefined;
+      }
       let id = riskId;
       if (!id) {
-        if (!form.unitLokasi || !form.category || !form.risiko || !form.sebabInsiden || !form.efekDampak) {
-          toastError('Lengkapi field wajib', { description: 'Unit, Kategori, Risiko, Sebab, dan Efek/Dampak wajib diisi.' });
-          return undefined;
-        }
         const created = await createRisk({
           ...form,
           riskYear: form.riskYear ?? new Date().getFullYear(),
@@ -112,7 +112,19 @@ export function RiskIdentificationForm({ userId, userName, activeUnit, draft, on
   }
 
   const next = async () => {
-    if (step === 0 || step === 1) {
+    // Langkah 0 (Informasi Risiko) hanya berisi Unit/Kategori/Subkategori —
+    // field Risiko/Sebab/Efek baru diisi di Langkah 1, jadi di sini TIDAK
+    // divalidasi/disimpan sebagai identifikasi lengkap (hanya validasi lokal
+    // untuk field yang memang ada pada langkah ini).
+    if (step === 0) {
+      if (!form.unitLokasi || !form.category) {
+        toastError('Lengkapi field wajib', { description: 'Unit/Lokasi dan Kategori Risiko wajib diisi.' });
+        return;
+      }
+      setStep((s) => s + 1);
+      return;
+    }
+    if (step === 1) {
       const id = await persistIdentification();
       if (!id) return;
       setStep((s) => s + 1);
