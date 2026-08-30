@@ -31,6 +31,8 @@ interface AuthContextType {
   ikpRoles: string[];
   /** peran tambahan khusus modul Manajemen Risiko ('manajemen' | 'pj_mutu' | 'risk_owner' | 'staff_unit' | 'direktur'). */
   riskRoles: string[];
+  /** peran tambahan khusus modul Survey Budaya Keselamatan Pasien ('komite_mutu' | 'manajemen' | 'kepala_unit' | 'staff'). */
+  budayaRoles: string[];
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string, unitId: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -104,19 +106,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<string | null>(null);
   const [ikpRoles, setIkpRoles] = useState<string[]>([]);
   const [riskRoles, setRiskRoles] = useState<string[]>([]);
+  const [budayaRoles, setBudayaRoles] = useState<string[]>([]);
   const recoveryEmailRef = useRef<string | null>(null);
 
   const fetchUnitId = async (uid: string) => {
     try {
-      // ikp_roles/risk_roles hanya ada setelah migration_ikp.sql /
-      // migration_risk.sql dijalankan. Coba sertakan keduanya; kalau kolom
-      // belum ada, turun bertahap supaya unit_id/role (fitur existing)
-      // tetap jalan meski salah satu atau kedua migrasi modul belum diterapkan.
+      // ikp_roles/risk_roles/budaya_roles hanya ada setelah migrasi modul
+      // masing-masing dijalankan. Coba sertakan semuanya; kalau kolom belum
+      // ada, turun bertahap supaya unit_id/role (fitur existing) tetap
+      // jalan meski salah satu atau lebih migrasi modul belum diterapkan.
       let { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .select('unit_id, role, ikp_roles, risk_roles')
+        .select('unit_id, role, ikp_roles, risk_roles, budaya_roles')
         .eq('id', uid)
         .maybeSingle();
+
+      if (error) {
+        const fallbackIkpRisk = await supabase
+          .from(PROFILES_TABLE)
+          .select('unit_id, role, ikp_roles, risk_roles')
+          .eq('id', uid)
+          .maybeSingle();
+        data = fallbackIkpRisk.data as typeof data;
+        error = fallbackIkpRisk.error;
+      }
 
       if (error) {
         const fallbackIkp = await supabase
@@ -143,6 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRole((data.role as string) ?? 'user');
         setIkpRoles((data as { ikp_roles?: string[] }).ikp_roles ?? []);
         setRiskRoles((data as { risk_roles?: string[] }).risk_roles ?? []);
+        setBudayaRoles((data as { budaya_roles?: string[] }).budaya_roles ?? []);
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
@@ -279,6 +293,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role,
       ikpRoles,
       riskRoles,
+      budayaRoles,
       login,
       signup,
       logout,

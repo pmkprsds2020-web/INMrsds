@@ -38,6 +38,8 @@ import {
   Wrench,
   ClipboardCheck,
   Grid3x3,
+  Users,
+  Building2,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -714,6 +716,65 @@ export function DashboardSidebar({
                   <motion.div
                     layoutId="sidebar-risk-active"
                     className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-rose-500"
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
+                  <item.icon className="size-3.5 text-muted-foreground" />
+                </span>
+                {!miniMode && (
+                  <span className="text-xs font-medium relative">{item.label}</span>
+                )}
+              </button>
+            </TooltipTrigger>
+            {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
+          </Tooltip>
+        ))}
+      </div>
+
+      <Separator className="bg-border" />
+
+      {/* ── Survey Budaya Keselamatan Pasien section ─────────────── */}
+      <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
+        {!miniMode && (
+          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Survey Budaya Keselamatan
+          </p>
+        )}
+        {[
+          { id: 'budaya-dashboard', icon: ShieldCheck, label: 'Dashboard' },
+          { id: 'budaya-aktif', icon: ListTodo, label: 'Survey Aktif' },
+          { id: 'budaya-buat', icon: ClipboardList, label: 'Buat Survey' },
+          { id: 'budaya-kuesioner', icon: FileSearch, label: 'Kuesioner' },
+          { id: 'budaya-responden', icon: Users, label: 'Responden' },
+          { id: 'budaya-hasil', icon: BarChart3, label: 'Hasil Survey' },
+          { id: 'budaya-analisis-dimensi', icon: Grid3x3, label: 'Analisis Dimensi' },
+          { id: 'budaya-analisis-unit', icon: Building2, label: 'Analisis Unit' },
+          { id: 'budaya-risk-area', icon: TriangleAlert, label: 'Risk/Improvement Area' },
+          { id: 'budaya-tindak-lanjut', icon: ListChecks, label: 'Rencana Tindak Lanjut' },
+          { id: 'budaya-monitoring', icon: Activity, label: 'Monitoring Tindak Lanjut' },
+          { id: 'budaya-laporan', icon: FileBarChart, label: 'Laporan' },
+          { id: 'budaya-riwayat', icon: History, label: 'Riwayat Survey' },
+          { id: 'budaya-master', icon: Database, label: 'Master Data' },
+        ].map((item) => (
+          <Tooltip key={item.id}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleTabChange(item.id)}
+                className={`
+                  group relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-all duration-200
+                  ${
+                    activeTab === item.id
+                      ? 'bg-emerald-500/10 text-emerald-500'
+                      : 'text-foreground/60 hover:bg-muted/30 hover:text-foreground/80'
+                  }
+                  ${miniMode ? 'justify-center' : ''}
+                `}
+              >
+                {activeTab === item.id && (
+                  <motion.div
+                    layoutId="sidebar-budaya-active"
+                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-emerald-500"
                     transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                   />
                 )}
