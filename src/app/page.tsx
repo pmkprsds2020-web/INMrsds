@@ -30,6 +30,7 @@ import { CommandPalette } from '@/components/dashboard/CommandPalette';
 import { DataExportTemplates } from '@/components/dashboard/DataExportTemplates';
 import { IkpModule } from '@/components/dashboard/ikp/IkpModule';
 import { RiskModule } from '@/components/dashboard/risk/RiskModule';
+import { BudayaModule } from '@/components/dashboard/budaya/BudayaModule';
 import { useKeyboardShortcuts, getDashboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import {
   Sheet,
@@ -120,7 +121,7 @@ function AppContent() {
 // ──────────────────────────────────────────────
 
 function Dashboard() {
-  const { user, unitId, role, ikpRoles, riskRoles, logout, sendVerification } = useAuth();
+  const { user, unitId, role, ikpRoles, riskRoles, budayaRoles, logout, sendVerification } = useAuth();
 
   // Hak akses reviewer modul IKP (verifikator/tim_mutu/pimpinan/admin) —
   // lihat src/components/dashboard/ikp/. Tidak memengaruhi hak akses modul
@@ -133,6 +134,14 @@ function Dashboard() {
   // INM/IKP lain, yang masih memakai `role`/`ikpRoles` seperti sebelumnya.
   const canReviewRisk = role === 'admin' || (riskRoles ?? []).some((r) => ['manajemen', 'pj_mutu', 'direktur'].includes(r));
   const isRiskAdmin = role === 'admin';
+
+  // Hak akses reviewer modul Survey Budaya Keselamatan Pasien
+  // (komite_mutu/manajemen/kepala_unit/admin) — lihat
+  // src/components/dashboard/budaya/. Tidak memengaruhi hak akses modul
+  // INM/IKP/Risiko lain, yang masih memakai role/ikpRoles/riskRoles seperti
+  // sebelumnya.
+  const canReviewBudaya = role === 'admin' || (budayaRoles ?? []).some((r) => ['komite_mutu', 'manajemen', 'kepala_unit'].includes(r));
+  const isBudayaAdmin = role === 'admin';
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -207,7 +216,7 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     async function loadEntries() {
-      if (!activeTab || activeTab === 'tren' || activeTab === 'kepatuhan' || activeTab === 'overview' || activeTab === 'ringkasan' || activeTab === 'ai-insights' || activeTab === 'activity-heatmap' || activeTab === 'data-quality' || activeTab === 'compliance-timeline' || activeTab === 'export-templates' || activeTab.startsWith('ikp-') || activeTab.startsWith('risk-')) {
+      if (!activeTab || activeTab === 'tren' || activeTab === 'kepatuhan' || activeTab === 'overview' || activeTab === 'ringkasan' || activeTab === 'ai-insights' || activeTab === 'activity-heatmap' || activeTab === 'data-quality' || activeTab === 'compliance-timeline' || activeTab === 'export-templates' || activeTab.startsWith('ikp-') || activeTab.startsWith('risk-') || activeTab.startsWith('budaya-')) {
         setIsLoading(false);
         return;
       }
@@ -764,6 +773,19 @@ function Dashboard() {
           activeUnit={activeUnit}
           canReview={canReviewRisk}
           isAdmin={isRiskAdmin}
+          onNavigate={(tab) => setActiveTab(tab)}
+        />
+      );
+    }
+    if (activeTab.startsWith('budaya-')) {
+      return (
+        <BudayaModule
+          activeTab={activeTab}
+          userId={user?.uid || ''}
+          userName={user?.displayName || user?.email || 'Pengguna'}
+          activeUnit={activeUnit}
+          canReview={canReviewBudaya}
+          isAdmin={isBudayaAdmin}
           onNavigate={(tab) => setActiveTab(tab)}
         />
       );
