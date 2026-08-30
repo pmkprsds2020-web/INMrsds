@@ -28,6 +28,7 @@ import {
   getIkpAuditTrail,
 } from '@/lib/ikpData';
 import { toastSuccess, toastError } from '@/lib/toast-helpers';
+import { createRiskFromIkpIncident } from '@/lib/riskData';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale/id';
 
@@ -82,7 +83,10 @@ export function IkpIncidentDetail({ incidentId, userId, userName, canReview, onB
               </p>
             </div>
             {canReview && (
-              <StatusActions incident={incident} userId={userId} onChanged={reload} />
+              <div className="flex items-center gap-2">
+                <JadikanRisikoButton incident={incident} userId={userId} />
+                <StatusActions incident={incident} userId={userId} onChanged={reload} />
+              </div>
             )}
           </div>
         </CardContent>
@@ -500,6 +504,38 @@ function AuditTab({ incidentId }: { incidentId: string }) {
 }
 
 /* ── Aksi perubahan status (verifikator/tim mutu) ───────────────────────── */
+/**
+ * Tombol "Jadikan Risiko" (poin 22, integrasi Modul Manajemen Risiko).
+ * Menyalin data insiden menjadi draft Risk Register — user tetap harus
+ * membuka modul Manajemen Risiko untuk melengkapi & memvalidasi analisis
+ * sebelum draft ini menjadi entri Risk Register final.
+ */
+function JadikanRisikoButton({ incident, userId }: { incident: IkpIncident; userId: string }) {
+  const [saving, setSaving] = useState(false);
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={saving}
+      onClick={async () => {
+        setSaving(true);
+        try {
+          const risk = await createRiskFromIkpIncident(incident, userId);
+          toastSuccess('Draft risiko dibuat', {
+            description: `${risk.riskCode} tersimpan sebagai draft — buka menu Manajemen Risiko > Risk Register untuk validasi & analisis.`,
+          });
+        } catch (err) {
+          toastError('Gagal membuat risiko dari IKP', { description: err instanceof Error ? err.message : undefined });
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      {saving ? 'Memproses…' : 'Jadikan Risiko'}
+    </Button>
+  );
+}
+
 function StatusActions({ incident, userId, onChanged }: { incident: IkpIncident; userId: string; onChanged: () => void }) {
   const currentIdx = IKP_STATUS_FLOW.indexOf(incident.status);
   const nextStatus = IKP_STATUS_FLOW[currentIdx + 1];

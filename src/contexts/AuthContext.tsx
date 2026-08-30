@@ -29,6 +29,8 @@ interface AuthContextType {
   role: string | null;
   /** peran tambahan khusus modul IKP ('verifikator' | 'tim_mutu' | 'pimpinan'). */
   ikpRoles: string[];
+  /** peran tambahan khusus modul Manajemen Risiko ('manajemen' | 'pj_mutu' | 'risk_owner' | 'staff_unit' | 'direktur'). */
+  riskRoles: string[];
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string, unitId: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -101,19 +103,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [unitId, setUnitIdState] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [ikpRoles, setIkpRoles] = useState<string[]>([]);
+  const [riskRoles, setRiskRoles] = useState<string[]>([]);
   const recoveryEmailRef = useRef<string | null>(null);
 
   const fetchUnitId = async (uid: string) => {
     try {
-      // ikp_roles hanya ada setelah supabase/migration_ikp.sql dijalankan.
-      // Coba sertakan; kalau kolom belum ada, fallback ke query lama supaya
-      // unit_id/role (fitur existing) tetap jalan meski migrasi IKP belum
-      // diterapkan.
+      // ikp_roles/risk_roles hanya ada setelah migration_ikp.sql /
+      // migration_risk.sql dijalankan. Coba sertakan keduanya; kalau kolom
+      // belum ada, turun bertahap supaya unit_id/role (fitur existing)
+      // tetap jalan meski salah satu atau kedua migrasi modul belum diterapkan.
       let { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .select('unit_id, role, ikp_roles')
+        .select('unit_id, role, ikp_roles, risk_roles')
         .eq('id', uid)
         .maybeSingle();
+
+      if (error) {
+        const fallbackIkp = await supabase
+          .from(PROFILES_TABLE)
+          .select('unit_id, role, ikp_roles')
+          .eq('id', uid)
+          .maybeSingle();
+        data = fallbackIkp.data as typeof data;
+        error = fallbackIkp.error;
+      }
 
       if (error) {
         const fallback = await supabase
@@ -129,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUnitIdState((data.unit_id as string) || null);
         setRole((data.role as string) ?? 'user');
         setIkpRoles((data as { ikp_roles?: string[] }).ikp_roles ?? []);
+        setRiskRoles((data as { risk_roles?: string[] }).risk_roles ?? []);
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
@@ -264,6 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       unitId,
       role,
       ikpRoles,
+      riskRoles,
       login,
       signup,
       logout,

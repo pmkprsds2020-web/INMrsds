@@ -35,6 +35,9 @@ import {
   Database,
   History,
   ListTodo,
+  Wrench,
+  ClipboardCheck,
+  Grid3x3,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -655,6 +658,62 @@ export function DashboardSidebar({
                   <motion.div
                     layoutId="sidebar-ikp-active"
                     className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-amber-500"
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
+                  <item.icon className="size-3.5 text-muted-foreground" />
+                </span>
+                {!miniMode && (
+                  <span className="text-xs font-medium relative">{item.label}</span>
+                )}
+              </button>
+            </TooltipTrigger>
+            {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
+          </Tooltip>
+        ))}
+      </div>
+
+      <Separator className="bg-border" />
+
+      {/* ── Manajemen Risiko section ──────────────────────────── */}
+      <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
+        {!miniMode && (
+          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Manajemen Risiko
+          </p>
+        )}
+        {[
+          { id: 'risk-dashboard', icon: ShieldAlert, label: 'Dashboard Risiko' },
+          { id: 'risk-register', icon: ListChecks, label: 'Risk Register' },
+          { id: 'risk-form', icon: ClipboardList, label: 'Identifikasi Risiko' },
+          { id: 'risk-matrix', icon: Grid3x3, label: 'Risk Matrix' },
+          { id: 'risk-mitigasi', icon: Wrench, label: 'Pengelolaan Risiko' },
+          { id: 'risk-monitoring', icon: Activity, label: 'Monitoring Risiko' },
+          { id: 'risk-review', icon: ClipboardCheck, label: 'Review Risiko' },
+          { id: 'risk-trend', icon: TrendingUp, label: 'Analisis Trend' },
+          { id: 'risk-laporan', icon: FileBarChart, label: 'Laporan Risiko' },
+          { id: 'risk-master', icon: Database, label: 'Master Data Risiko' },
+          { id: 'risk-audit', icon: History, label: 'Audit Trail Risiko' },
+        ].map((item) => (
+          <Tooltip key={item.id}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleTabChange(item.id)}
+                className={`
+                  group relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-all duration-200
+                  ${
+                    activeTab === item.id
+                      ? 'bg-rose-500/10 text-rose-500'
+                      : 'text-foreground/60 hover:bg-muted/30 hover:text-foreground/80'
+                  }
+                  ${miniMode ? 'justify-center' : ''}
+                `}
+              >
+                {activeTab === item.id && (
+                  <motion.div
+                    layoutId="sidebar-risk-active"
+                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-rose-500"
                     transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                   />
                 )}
