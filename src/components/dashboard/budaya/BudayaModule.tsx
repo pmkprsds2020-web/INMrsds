@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BudayaDashboardPanel } from './BudayaDashboardPanel';
 import { BudayaSurveyList } from './BudayaSurveyList';
 import { BudayaSurveyForm } from './BudayaSurveyForm';
@@ -41,6 +41,8 @@ interface BudayaModuleProps {
   activeUnit: string;
   /** true untuk role komite_mutu/manajemen/kepala_unit/admin (lihat page.tsx). */
   canReview: boolean;
+  /** true HANYA untuk komite_mutu/admin — sub-hak dari canReview khusus membuat/mengubah survei (poin BE). */
+  canManageSurvey: boolean;
   /** true HANYA untuk role='admin' — dipakai gerbang Master Data. */
   isAdmin: boolean;
   onNavigate: (tab: string) => void;
@@ -48,13 +50,22 @@ interface BudayaModuleProps {
 
 type DetailTarget = { surveyId: string; focusTab: string } | null;
 
-export function BudayaModule({ activeTab, userId, userName, activeUnit, canReview, isAdmin, onNavigate }: BudayaModuleProps) {
+export function BudayaModule({ activeTab, userId, userName, activeUnit, canReview, canManageSurvey, isAdmin, onNavigate }: BudayaModuleProps) {
   const [detail, setDetail] = useState<DetailTarget>(null);
 
-  // Kalau sidebar diklik ke tab lain, keluar dari tampilan detail survei.
-  useEffect(() => { setDetail(null); }, [activeTab]);
+  // CATATAN: sengaja TIDAK reset `detail` otomatis setiap activeTab
+  // berubah — beberapa aksi (mis. tombol "Buat Laporan dari Hasil Ini",
+  // atau "Buat/Lihat Link Pengisian" di kartu survei) memanggil
+  // onNavigate(tab) SETELAH menyimpan surveyId yang dipilih, supaya panel
+  // tujuan langsung terbuka dengan survei yang sama. Reset otomatis di
+  // sini akan menghapus pilihan itu tepat sebelum panel tujuan sempat
+  // membacanya.
 
   const openSurvey = (surveyId: string, focusTab = 'ringkasan') => setDetail({ surveyId, focusTab });
+  const selectAndGo = (id: string, tab?: string) => {
+    openSurvey(id, tab ?? 'ringkasan');
+    if (tab) onNavigate(tab);
+  };
 
   switch (activeTab) {
     case 'budaya-dashboard':
@@ -66,8 +77,9 @@ export function BudayaModule({ activeTab, userId, userName, activeUnit, canRevie
           statusFilter={['draft', 'aktif']}
           title="Survey Aktif"
           canReview={canReview}
+          canManageSurvey={canManageSurvey}
           userId={userId}
-          onSelect={openSurvey}
+          onSelect={selectAndGo}
           onCreateNew={() => onNavigate('budaya-buat')}
         />
       );
@@ -78,8 +90,9 @@ export function BudayaModule({ activeTab, userId, userName, activeUnit, canRevie
           statusFilter={['ditutup', 'final', 'arsip']}
           title="Riwayat Survey"
           canReview={canReview}
+          canManageSurvey={canManageSurvey}
           userId={userId}
-          onSelect={openSurvey}
+          onSelect={selectAndGo}
         />
       );
 

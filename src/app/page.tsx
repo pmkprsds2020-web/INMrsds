@@ -142,6 +142,11 @@ function Dashboard() {
   // sebelumnya.
   const canReviewBudaya = role === 'admin' || (budayaRoles ?? []).some((r) => ['komite_mutu', 'manajemen', 'kepala_unit'].includes(r));
   const isBudayaAdmin = role === 'admin';
+  // Sub-hak yang lebih sempit dari canReviewBudaya: hanya komite_mutu/admin
+  // yang boleh MEMBUAT/MENGUBAH survei (poin BE — Manajemen & Kepala Unit
+  // hanya punya hak lihat/approval/tindak lanjut, bukan kelola survei),
+  // sesuai kebijakan RLS budaya_surveys_write di migration_budaya.sql.
+  const canManageBudayaSurvey = role === 'admin' || (budayaRoles ?? []).includes('komite_mutu');
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -785,6 +790,7 @@ function Dashboard() {
           userName={user?.displayName || user?.email || 'Pengguna'}
           activeUnit={activeUnit}
           canReview={canReviewBudaya}
+          canManageSurvey={canManageBudayaSurvey}
           isAdmin={isBudayaAdmin}
           onNavigate={(tab) => setActiveTab(tab)}
         />

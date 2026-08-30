@@ -128,7 +128,7 @@ export function BudayaQuestionnairePanel({ surveyId, onSelectSurvey }: { surveyI
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Kuesioner</h2>
-      <Tabs defaultValue="bank">
+      <Tabs defaultValue={surveyId ? 'distribusi' : 'bank'}>
         <TabsList>
           <TabsTrigger value="bank">Struktur Instrumen</TabsTrigger>
           <TabsTrigger value="distribusi">Distribusi</TabsTrigger>
