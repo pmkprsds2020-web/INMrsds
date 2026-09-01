@@ -525,15 +525,26 @@ export async function deleteCustomIndicatorMeasurement(id: string): Promise<void
 // Realtime
 // ────────────────────────────────────────────────────────────────
 
+// Setiap panggilan subscribeTo* di bawah ini butuh topic channel yang UNIK.
+// Sidebar (section "Indikator Mutu Unit"/"Master Indikator Mutu") dan panel
+// yang sedang aktif (Dashboard/List/Detail) sama-sama memanggil fungsi ini
+// SECARA BERSAMAAN pada halaman yang sama. Kalau topic-nya sama persis,
+// Supabase Realtime mendeteksi channel dengan topic itu sudah ter-subscribe
+// dan panggilan .on() berikutnya pada instance channel baru gagal dengan
+// "cannot add 'postgres_changes' callbacks ... after 'subscribe()'" —
+// meng-crash seluruh halaman. Penomoran counter di bawah menjamin setiap
+// caller dapat topic channel-nya sendiri.
+let subscriptionCounter = 0;
+
 export function subscribeToCustomIndicators(onChange: () => void): Unsubscribe {
-  const channel = supabase.channel('custom_indicators_changes')
+  const channel = supabase.channel(`custom_indicators_changes_${++subscriptionCounter}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: INDICATORS_TABLE }, onChange)
     .subscribe();
   return () => { supabase.removeChannel(channel); };
 }
 
 export function subscribeToCustomIndicatorMeasurements(indicatorId: string, onChange: () => void): Unsubscribe {
-  const channel = supabase.channel(`custom_indicator_measurements_${indicatorId}`)
+  const channel = supabase.channel(`custom_indicator_measurements_${indicatorId}_${++subscriptionCounter}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: MEASUREMENTS_TABLE, filter: `indicator_id=eq.${indicatorId}` }, onChange)
     .subscribe();
   return () => { supabase.removeChannel(channel); };
