@@ -40,6 +40,7 @@ import {
   Grid3x3,
   Users,
   Building2,
+  Trophy,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -829,6 +830,59 @@ export function DashboardSidebar({
                   <motion.div
                     layoutId="sidebar-uimu-active"
                     className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-violet-500"
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
+                  <item.icon className="size-3.5 text-muted-foreground" />
+                </span>
+                {!miniMode && (
+                  <span className="text-xs font-medium relative">{item.label}</span>
+                )}
+              </button>
+            </TooltipTrigger>
+            {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
+          </Tooltip>
+        ))}
+      </div>
+
+      <Separator className="bg-border" />
+
+      {/* ── Master Indikator Mutu Custom section ──────────────── */}
+      <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
+        {!miniMode && (
+          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Master Indikator Mutu
+          </p>
+        )}
+        {[
+          { id: 'custom-ind-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+          { id: 'custom-ind-all', icon: ListChecks, label: 'Semua Indikator' },
+          { id: 'custom-ind-active', icon: ShieldCheck, label: 'Indikator Aktif' },
+          { id: 'custom-ind-inactive', icon: TriangleAlert, label: 'Indikator Nonaktif' },
+          { id: 'custom-ind-unit', icon: Building2, label: 'Indikator Unit' },
+          { id: 'custom-ind-priority', icon: Trophy, label: 'Prioritas RS' },
+          { id: 'custom-ind-new', icon: ClipboardList, label: '+ Buat Indikator Baru' },
+          { id: 'custom-ind-audit', icon: History, label: 'Audit Trail' },
+        ].map((item) => (
+          <Tooltip key={item.id}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleTabChange(item.id)}
+                className={`
+                  group relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-all duration-200
+                  ${
+                    activeTab === item.id
+                      ? 'bg-teal-500/10 text-teal-500'
+                      : 'text-foreground/60 hover:bg-muted/30 hover:text-foreground/80'
+                  }
+                  ${miniMode ? 'justify-center' : ''}
+                `}
+              >
+                {activeTab === item.id && (
+                  <motion.div
+                    layoutId="sidebar-custom-ind-active"
+                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-teal-500"
                     transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                   />
                 )}

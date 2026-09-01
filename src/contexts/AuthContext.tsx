@@ -35,6 +35,8 @@ interface AuthContextType {
   budayaRoles: string[];
   /** peran tambahan khusus modul Usulan Indikator Mutu Unit ('kepala_unit' | 'komite_mutu' | 'manajemen'). */
   uimuRoles: string[];
+  /** peran tambahan khusus modul Master Indikator Mutu Custom ('komite_mutu' | 'manajemen'). */
+  customIndicatorRoles: string[];
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string, unitId: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -110,19 +112,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [riskRoles, setRiskRoles] = useState<string[]>([]);
   const [budayaRoles, setBudayaRoles] = useState<string[]>([]);
   const [uimuRoles, setUimuRoles] = useState<string[]>([]);
+  const [customIndicatorRoles, setCustomIndicatorRoles] = useState<string[]>([]);
   const recoveryEmailRef = useRef<string | null>(null);
 
   const fetchUnitId = async (uid: string) => {
     try {
-      // ikp_roles/risk_roles/budaya_roles/uimu_roles hanya ada setelah migrasi
-      // modul masing-masing dijalankan. Coba sertakan semuanya; kalau kolom
-      // belum ada, turun bertahap supaya unit_id/role (fitur existing) tetap
-      // jalan meski salah satu atau lebih migrasi modul belum diterapkan.
+      // ikp_roles/risk_roles/budaya_roles/uimu_roles/custom_indicator_roles hanya
+      // ada setelah migrasi modul masing-masing dijalankan. Coba sertakan
+      // semuanya; kalau kolom belum ada, turun bertahap supaya unit_id/role
+      // (fitur existing) tetap jalan meski salah satu atau lebih migrasi
+      // modul belum diterapkan.
       let { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .select('unit_id, role, ikp_roles, risk_roles, budaya_roles, uimu_roles')
+        .select('unit_id, role, ikp_roles, risk_roles, budaya_roles, uimu_roles, custom_indicator_roles')
         .eq('id', uid)
         .maybeSingle();
+
+      if (error) {
+        const fallbackUimu = await supabase
+          .from(PROFILES_TABLE)
+          .select('unit_id, role, ikp_roles, risk_roles, budaya_roles, uimu_roles')
+          .eq('id', uid)
+          .maybeSingle();
+        data = fallbackUimu.data as typeof data;
+        error = fallbackUimu.error;
+      }
 
       if (error) {
         const fallbackIkpRiskBudaya = await supabase
@@ -171,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRiskRoles((data as { risk_roles?: string[] }).risk_roles ?? []);
         setBudayaRoles((data as { budaya_roles?: string[] }).budaya_roles ?? []);
         setUimuRoles((data as { uimu_roles?: string[] }).uimu_roles ?? []);
+        setCustomIndicatorRoles((data as { custom_indicator_roles?: string[] }).custom_indicator_roles ?? []);
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
@@ -309,6 +324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       riskRoles,
       budayaRoles,
       uimuRoles,
+      customIndicatorRoles,
       login,
       signup,
       logout,

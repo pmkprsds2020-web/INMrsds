@@ -32,6 +32,7 @@ import { IkpModule } from '@/components/dashboard/ikp/IkpModule';
 import { RiskModule } from '@/components/dashboard/risk/RiskModule';
 import { BudayaModule } from '@/components/dashboard/budaya/BudayaModule';
 import { UimuModule } from '@/components/dashboard/uimu/UimuModule';
+import { CustomIndicatorModule } from '@/components/dashboard/custom-indicators/CustomIndicatorModule';
 import { useKeyboardShortcuts, getDashboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import {
   Sheet,
@@ -122,7 +123,7 @@ function AppContent() {
 // ──────────────────────────────────────────────
 
 function Dashboard() {
-  const { user, unitId, role, ikpRoles, riskRoles, budayaRoles, uimuRoles, logout, sendVerification } = useAuth();
+  const { user, unitId, role, ikpRoles, riskRoles, budayaRoles, uimuRoles, customIndicatorRoles, logout, sendVerification } = useAuth();
 
   // Hak akses reviewer modul IKP (verifikator/tim_mutu/pimpinan/admin) —
   // lihat src/components/dashboard/ikp/. Tidak memengaruhi hak akses modul
@@ -157,6 +158,12 @@ function Dashboard() {
   // konsisten dengan enforcement RLS di migration_usulan_indikator.sql.
   const canReviewUimu = role === 'admin' || (uimuRoles ?? []).some((r) => ['kepala_unit', 'komite_mutu', 'manajemen'].includes(r));
   const isUimuAdmin = role === 'admin';
+
+  // Hak akses modul Master Indikator Mutu Custom (komite_mutu/admin dapat
+  // kelola master; manajemen punya hak approval Prioritas RS) — lihat
+  // src/components/dashboard/custom-indicators/. Tidak memengaruhi modul lain.
+  const isCustomIndicatorManager = role === 'admin' || (customIndicatorRoles ?? []).includes('komite_mutu');
+  const isCustomIndicatorManagement = role === 'admin' || (customIndicatorRoles ?? []).includes('manajemen');
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -231,7 +238,7 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     async function loadEntries() {
-      if (!activeTab || activeTab === 'tren' || activeTab === 'kepatuhan' || activeTab === 'overview' || activeTab === 'ringkasan' || activeTab === 'ai-insights' || activeTab === 'activity-heatmap' || activeTab === 'data-quality' || activeTab === 'compliance-timeline' || activeTab === 'export-templates' || activeTab.startsWith('ikp-') || activeTab.startsWith('risk-') || activeTab.startsWith('budaya-') || activeTab.startsWith('uimu-')) {
+      if (!activeTab || activeTab === 'tren' || activeTab === 'kepatuhan' || activeTab === 'overview' || activeTab === 'ringkasan' || activeTab === 'ai-insights' || activeTab === 'activity-heatmap' || activeTab === 'data-quality' || activeTab === 'compliance-timeline' || activeTab === 'export-templates' || activeTab.startsWith('ikp-') || activeTab.startsWith('risk-') || activeTab.startsWith('budaya-') || activeTab.startsWith('uimu-') || activeTab.startsWith('custom-ind-')) {
         setIsLoading(false);
         return;
       }
@@ -342,7 +349,7 @@ function Dashboard() {
       }
     }
     // Override with current tab's filtered entries for accuracy
-    if (activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'overview' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && activeTab !== 'export-templates' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('uimu-')) {
+    if (activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'overview' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && activeTab !== 'export-templates' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-')) {
       counts[activeTab] = entries.length;
     }
     return counts;
@@ -668,7 +675,7 @@ function Dashboard() {
   useKeyboardShortcuts({
     shortcuts: getDashboardShortcuts({
       onAddNew: () => {
-        if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('budaya-') && !activeTab.startsWith('uimu-') && !accessBlocked) {
+        if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('budaya-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-') && !accessBlocked) {
           const entry = createDefaultEntry(activeTab as IndicatorType, activeUnit, user?.uid || '');
           handleAddEntry(entry).catch(() => {});
         }
@@ -816,6 +823,19 @@ function Dashboard() {
           uimuRoles={uimuRoles ?? []}
           canReview={canReviewUimu}
           isAdmin={isUimuAdmin}
+          onNavigate={(tab) => setActiveTab(tab)}
+        />
+      );
+    }
+    if (activeTab.startsWith('custom-ind-')) {
+      return (
+        <CustomIndicatorModule
+          activeTab={activeTab}
+          userId={user?.uid || ''}
+          userName={user?.displayName || user?.email || 'Pengguna'}
+          activeUnit={activeUnit}
+          isManager={isCustomIndicatorManager}
+          isManagement={isCustomIndicatorManagement}
           onNavigate={(tab) => setActiveTab(tab)}
         />
       );
@@ -1031,7 +1051,7 @@ function Dashboard() {
         {/* Quick Actions Widget */}
         <QuickActionsWidget
           onAddEntry={() => {
-            if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('budaya-') && !activeTab.startsWith('uimu-') && !accessBlocked) {
+            if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('budaya-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-') && !accessBlocked) {
               const entry = createDefaultEntry(activeTab as IndicatorType, activeUnit, user?.uid || '');
               handleAddEntry(entry).catch(() => {});
             }
