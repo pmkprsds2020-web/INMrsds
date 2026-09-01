@@ -80,6 +80,43 @@ Sudah dicek dengan `npx tsc --noEmit` (**0 error baru** — total error project 
   ("jangan membuat approval wajib jika sistem existing belum punya mekanisme
   tersebut; buat extensible").
 
+## Tambahan: Modul "Indikator Mutu Unit" (untuk PIC data entry)
+
+Modul terpisah dari "Master Indikator Mutu" di atas — dibuat supaya PIC unit
+tidak perlu membuka menu manajemen (yang penuh field admin) hanya untuk
+input data harian/bulanan.
+
+**Cara kerja:**
+- Section sidebar baru **"Indikator Mutu Unit"** (warna cyan) muncul **secara
+  dinamis** di bawah unit yang sedang aktif — isinya hanya indikator custom
+  bertipe `unit` yang **status = aktif** dan **ditugaskan ke unit itu** (atau
+  `is_all_units = true`). Diambil lewat `getActiveUnitIndicatorsForUnit(unitId)`
+  di `customIndicatorData.ts`, dan berlangganan `subscribeToCustomIndicators`
+  supaya sidebar refresh otomatis.
+- **Begitu indikator dinonaktifkan** di Master Indikator Mutu, query itu
+  otomatis tidak mengembalikannya lagi → hilang dari sidebar dan dari daftar
+  "Indikator Mutu Unit" tanpa langkah tambahan apa pun (ini murni efek dari
+  filter `status = 'active'`, bukan logika baru).
+- Klik salah satu indikator → form input ringkas (unit sudah terkunci ke unit
+  aktif, tidak perlu pilih-pilih) + riwayat input untuk unit tersebut. Form
+  ini adalah komponen yang SAMA dengan tab "Input Data" di Master Indikator
+  Mutu (`MeasurementForm.tsx`, diekstrak jadi komponen bersama supaya tidak
+  ada logika ganda) — jadi tervalidasi dan tersimpan lewat jalur yang identik.
+
+**Berkas baru:**
+- `src/components/dashboard/custom-indicators/MeasurementForm.tsx` — diekstrak dari `CustomIndicatorDetail.tsx` (dipakai bersama).
+- `src/components/dashboard/custom-indicators/UnitIndicatorModule.tsx` — daftar indikator aktif per unit + panel input ringkas.
+
+**Berkas yang diedit:**
+- `src/lib/customIndicatorData.ts` — tambah `getActiveUnitIndicatorsForUnit(unitId)`.
+- `src/components/dashboard/custom-indicators/CustomIndicatorDetail.tsx` — memakai `MeasurementForm` dari file bersama (tidak ada perubahan perilaku).
+- `src/components/dashboard/DashboardSidebar.tsx` — section dinamis baru + `useEffect` untuk fetch per `activeUnit`.
+- `src/app/page.tsx` — render `UnitIndicatorModule` untuk tab `unit-ind-*` + pengecualian di semua guard existing.
+
+Sudah dicek ulang dengan `npx tsc --noEmit` (0 error baru, tetap 179 baseline) dan `next build` (lolos kompilasi sampai batas fetch Google Fonts, sama seperti sebelumnya).
+
+Tidak perlu migration SQL tambahan — modul ini murni membaca dari tabel yang sudah ada di `migration_custom_indicators.sql`.
+
 ## Yang belum sempat dikerjakan (transparan)
 
 - **Import Excel** (bagian 34) belum dibuat — ditandai opsional di audit awal.

@@ -210,11 +210,23 @@ export async function getCustomIndicators(filters: CustomIndicatorFilters = {}):
   return rows;
 }
 
+/**
+ * Indikator mutu unit yang AKTIF dan terlihat oleh unit tertentu — dipakai
+ * modul "Indikator Mutu Unit" (PIC data entry) dan sidebar. Otomatis
+ * mengikuti status: begitu indikator dinonaktifkan di Master Indikator Mutu,
+ * baris ini tidak lagi dikembalikan (hilang dari modul PIC tanpa perlu
+ * langkah tambahan apa pun).
+ */
+export async function getActiveUnitIndicatorsForUnit(unitId: string): Promise<CustomIndicator[]> {
+  return getCustomIndicators({ status: 'active', indicatorType: 'unit', unitId });
+}
+
 export async function getCustomIndicatorById(id: string): Promise<CustomIndicator | null> {
   const { data, error } = await supabase.from(INDICATORS_TABLE).select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   return data ? rowToIndicator(data) : null;
 }
+
 
 function nextCode(existingCodes: string[], prefix: string): string {
   const nums = existingCodes

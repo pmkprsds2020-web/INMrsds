@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -61,6 +61,8 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { UNIT_MAP, INDICATORS, type IndicatorType } from '@/types';
+import { getActiveUnitIndicatorsForUnit, subscribeToCustomIndicators } from '@/lib/customIndicatorData';
+import type { CustomIndicator } from '@/types/customIndicators';
 import { cn } from '@/lib/utils';
 
 interface DashboardSidebarProps {
@@ -187,6 +189,22 @@ export function DashboardSidebar({
   });
 
   const unitMeta = UNIT_MAP[activeUnit] ?? UNIT_MAP['all'];
+
+  /* Indikator mutu unit (custom, aktif, di-assign ke activeUnit) — untuk
+     section "Indikator Mutu Unit" (PIC data entry). Live-fetched karena
+     tidak seperti INDICATORS (statis), daftar ini berubah kapan saja
+     Komite Mutu membuat/menonaktifkan indikator di Master Indikator Mutu. */
+  const [unitIndicators, setUnitIndicators] = useState<CustomIndicator[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    function load() {
+      if (!activeUnit || activeUnit === 'all') { setUnitIndicators([]); return; }
+      getActiveUnitIndicatorsForUnit(activeUnit).then((rows) => { if (!cancelled) setUnitIndicators(rows); }).catch(() => {});
+    }
+    load();
+    const unsub = subscribeToCustomIndicators(load);
+    return () => { cancelled = true; unsub(); };
+  }, [activeUnit]);
 
   /* Filtered indicators for this unit */
   const filteredIndicators = useMemo(() => {
@@ -622,6 +640,57 @@ export function DashboardSidebar({
       </ScrollArea>
 
       <Separator className="bg-border" />
+
+      {unitIndicators.length > 0 && (
+        <>
+          {/* ── Indikator Mutu Unit section (dinamis per unit, PIC data entry) ── */}
+          <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
+            {!miniMode && (
+              <button
+                onClick={() => handleTabChange('unit-ind-home')}
+                className="w-full text-left px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 hover:text-cyan-500 transition-colors"
+              >
+                Indikator Mutu Unit
+              </button>
+            )}
+            {unitIndicators.map((ind) => {
+              const tabId = `unit-ind-${ind.id}`;
+              const isActive = activeTab === tabId;
+              return (
+                <Tooltip key={ind.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleTabChange(tabId)}
+                      className={cn(
+                        'group relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-all duration-200',
+                        isActive ? 'bg-cyan-500/10 text-cyan-500' : 'text-foreground/60 hover:bg-muted/30 hover:text-foreground/80',
+                        miniMode ? 'justify-center' : ''
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="sidebar-unit-ind-active"
+                          className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-cyan-500"
+                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <span className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
+                        <ClipboardList className="size-3.5 text-muted-foreground" />
+                      </span>
+                      {!miniMode && (
+                        <span className="text-xs font-medium relative truncate">{ind.name}</span>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  {miniMode && <TooltipContent side="right">{ind.name}</TooltipContent>}
+                </Tooltip>
+              );
+            })}
+          </div>
+
+          <Separator className="bg-border" />
+        </>
+      )}
 
       <Separator className="bg-border" />
 
