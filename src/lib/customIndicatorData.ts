@@ -235,7 +235,6 @@ export async function getActivePriorityIndicatorsForUnit(unitId: string): Promis
   return getCustomIndicators({ status: 'active', indicatorType: 'priority_rs', unitId });
 }
 
-
 export async function getCustomIndicatorById(id: string): Promise<CustomIndicator | null> {
   const { data, error } = await supabase.from(INDICATORS_TABLE).select('*').eq('id', id).maybeSingle();
   if (error) throw error;
