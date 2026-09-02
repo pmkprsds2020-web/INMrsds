@@ -466,7 +466,7 @@ begin
     unit_of_measure, unit_of_measure_custom, frequency, allow_multiple_per_period
   ) values (
     v_indicator_id, 1,
-    'Nilai Indeks Kepuasan Masyarakat (IKM), hasil konversi Nilai Indeks (NI) rata-rata 9 unsur pelayanan dikali 25, dari Survey Kepuasan Pasien.',
+    'Nilai Indeks Kepuasan Masyarakat (IKM), hasil konversi Nilai Indeks (NI) rata-rata 9 unsur pelayanan dikali 25, dari Survey Kepuasan Pasien. DIISI OTOMATIS oleh sistem setiap Dashboard/Monev Survey Kepuasan Pasien dibuka — jangan input manual di sini, kecuali untuk mengoreksi data.',
     'Nilai IKM (0-100)', 'Survey Kepuasan Pasien', 'Survei elektronik (link/QR) dan/atau kiosk tablet, isi mandiri oleh pasien',
     'sum', 1, 76.61, 'gt', 'higher_better',
     'indeks', null, 'bulanan', false

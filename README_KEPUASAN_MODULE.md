@@ -52,153 +52,32 @@ src/components/dashboard/kepuasan/KepuasanKritikSaranPanel.tsx
 src/components/dashboard/kepuasan/KepuasanMonevPanel.tsx
 ```
 
-## File MODIFIKASI (menimpa file existing Anda — HANYA bagian aditif)
+## File MODIFIKASI (menimpa file existing Anda)
 
-Sengaja **tidak** disertakan sebagai file utuh (page.tsx dan
-DashboardSidebar.tsx sangat sentral, >1000 baris) — silakan terapkan
-potongan berikut secara manual, sama seperti catatan di
-README_BUDAYA_MODULE.md.
+Update: `src/app/page.tsx` dan `src/components/dashboard/DashboardSidebar.tsx`
+di paket ini **SUDAH LENGKAP TERINTEGRASI** — tinggal timpa langsung file
+Anda dengan dua file ini, TIDAK perlu tempel manual lagi. Sebelum menimpa,
+disarankan tetap diff dulu dengan file Anda saat ini (terutama bila Anda
+sudah menambah modul lain sejak versi yang saya proses), karena kedua file
+ini sangat sentral (>1000 baris) — perubahan yang saya buat murni ADITIF
+(import baru, satu blok dispatch `if (activeTab.startsWith('kepuasan-'))`,
+satu section menu baru di sidebar) dan tidak menghapus/mengubah baris modul
+lain manapun.
 
-### 1. `src/app/page.tsx`
+Ringkasan perubahan di kedua file (untuk keperluan diff manual bila Anda
+memilih tidak langsung menimpa):
 
-**Import** (dekat `import { BudayaModule } from '@/components/dashboard/budaya/BudayaModule';`):
+- `page.tsx`: import `KepuasanModule`; konstanta `canManageKepuasanSurvey`
+  (baris ~156); blok render `if (activeTab.startsWith('kepuasan-')) {...}`;
+  penambahan `|| activeTab.startsWith('kepuasan-')` di 3 pengecekan guard
+  yang sudah memuat `activeTab.startsWith('budaya-')`.
+- `DashboardSidebar.tsx`: 3 import ikon baru (`MessageSquare`, `QrCode`,
+  `Gauge`); key `kepuasanSurvey` di `openGroups`; satu cabang di
+  `useEffect` auto-expand; satu section `<Collapsible>` menu baru
+  "Survey Kepuasan Pasien" (8 item) ditempatkan setelah section "Survey
+  Budaya Keselamatan Pasien".
 
-```tsx
-import { KepuasanModule } from '@/components/dashboard/kepuasan/KepuasanModule';
-```
-
-**Hak akses** (dekat definisi `canReviewBudaya`/`canManageBudayaSurvey`, sekitar baris 147-153):
-
-```tsx
-// Hak akses modul Survey Kepuasan Pasien. MVP: admin saja boleh
-// membuat/mengelola survei (role dasar), sama seperti gerbang
-// isCustomIndicatorAdmin di modul lain. Untuk hak granular per-role
-// (mis. 'admin_mutu'/'unit', kolom profiles.kepuasan_roles SUDAH dibuat
-// oleh migration_kepuasan.sql), tambahkan kepuasanRoles ke AuthContext
-// dengan pola identik budayaRoles (lihat src/contexts/AuthContext.tsx
-// baris ~110-190) lalu ganti baris di bawah dengan:
-//   const canManageKepuasanSurvey = role === 'admin' || (kepuasanRoles ?? []).includes('admin_mutu');
-const canManageKepuasanSurvey = role === 'admin';
-```
-
-**Dispatch activeTab** (tambahkan blok baru setelah blok `if (activeTab.startsWith('budaya-')) { ... }`, sekitar baris 804-817):
-
-```tsx
-if (activeTab.startsWith('kepuasan-')) {
-  return (
-    <KepuasanModule
-      activeTab={activeTab}
-      userId={user?.uid || ''}
-      userName={user?.displayName || user?.email || 'Pengguna'}
-      canManageSurvey={canManageKepuasanSurvey}
-      onNavigate={(tab) => setActiveTab(tab)}
-    />
-  );
-}
-```
-
-**Guard activeTab** (tambahkan `|| activeTab.startsWith('kepuasan-')` di SETIAP tempat yang sudah memuat `|| activeTab.startsWith('budaya-')` — ada 3 titik di page.tsx pada berkas yang Anda lampirkan, sekitar baris 243, 680, dan 1078 — supaya breadcrumb/access-block/dsb. tidak salah menganggap tab kepuasan sebagai tab indikator biasa).
-
-### 2. `src/components/dashboard/DashboardSidebar.tsx`
-
-**Import ikon** (tambahkan ke daftar import dari `'lucide-react'`, dua ikon baru — semua ikon lain yang dipakai di bawah, seperti `TrendingUp`, `ClipboardList`, `ListChecks`, `FileSearch`, `Users`, `BarChart3`, `FileBarChart`, `History`, `Database`, sudah ada di daftar import existing):
-
-```tsx
-  MessageSquare,
-  QrCode,
-```
-
-**openGroups state** (tambahkan key baru di object `useState<Record<string, boolean>>({...})`, dekat `survey: false,`):
-
-```tsx
-    kepuasanSurvey: false,
-```
-
-**Auto-expand detection** (tambahkan cabang baru di `useEffect` yang mendeteksi activeTab aktif, dekat `else if (activeTab.startsWith('budaya-')) group = 'survey';`):
-
-```tsx
-    else if (activeTab.startsWith('kepuasan-')) group = 'kepuasanSurvey';
-```
-
-**Menu section** — tambahkan blok Collapsible baru SETELAH blok "Survey Budaya
-Keselamatan Pasien" (setelah `</Collapsible>` yang menutup section budaya,
-sebelum section berikutnya seperti UIMU), meniru persis struktur JSX section
-budaya (lihat file existing Anda sekitar baris 984-1044) dengan isi:
-
-```tsx
-<Separator className="bg-border" />
-
-{/* ── Survey Kepuasan Pasien section ─────────────────────────── */}
-<Collapsible open={miniMode ? true : openGroups.kepuasanSurvey} onOpenChange={() => !miniMode && toggleGroup('kepuasanSurvey')}>
-<div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
-  {!miniMode && (
-    <CollapsibleTrigger asChild>
-      <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
-        <ChevronRight
-          className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
-            openGroups.kepuasanSurvey ? 'rotate-90' : ''
-          }`}
-        />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
-          Survey Kepuasan Pasien
-        </span>
-        <span className="text-[9px] text-muted-foreground/40 font-medium">7</span>
-      </button>
-    </CollapsibleTrigger>
-  )}
-  <CollapsibleContent>
-  {[
-    { id: 'kepuasan-dashboard', icon: Gauge, label: 'Dashboard' },
-    { id: 'kepuasan-aktif', icon: ListTodo, label: 'Survey Aktif' },
-    { id: 'kepuasan-buat', icon: ClipboardList, label: 'Buat Survey' },
-    { id: 'kepuasan-distribusi', icon: QrCode, label: 'Distribusi (Link/QR)' },
-    { id: 'kepuasan-responses', icon: FileSearch, label: 'Responses' },
-    { id: 'kepuasan-kritik-saran', icon: MessageSquare, label: 'Kritik & Saran' },
-    { id: 'kepuasan-monev', icon: TrendingUp, label: 'Monev' },
-    { id: 'kepuasan-riwayat', icon: History, label: 'Riwayat Survey' },
-  ].map((item) => (
-    <Tooltip key={item.id}>
-      <TooltipTrigger asChild>
-        <button
-          onClick={() => handleTabChange(item.id)}
-          className={`
-            group relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-all duration-200
-            ${
-              activeTab === item.id
-                ? 'bg-pink-500/10 text-pink-500'
-                : 'text-foreground/60 hover:bg-muted/30 hover:text-foreground/80'
-            }
-            ${miniMode ? 'justify-center' : ''}
-          `}
-        >
-          {activeTab === item.id && (
-            <motion.div
-              layoutId="sidebar-kepuasan-active"
-              className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-pink-500"
-              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-            />
-          )}
-          <span className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
-            <item.icon className="size-3.5 text-muted-foreground" />
-          </span>
-          {!miniMode && (
-            <span className="text-xs font-medium relative">{item.label}</span>
-          )}
-        </button>
-      </TooltipTrigger>
-      {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
-    </Tooltip>
-  ))}
-  </CollapsibleContent>
-</div>
-</Collapsible>
-```
-
-> Item pertama memakai ikon `Gauge` — sudah diimpor di `KepuasanDashboardPanel.tsx`
-> tapi BELUM ada di daftar import `DashboardSidebar.tsx`; tambahkan `Gauge`
-> ke daftar import lucide-react yang sama di atas.
-
-### 3. (Opsional, untuk hak akses granular) `src/contexts/AuthContext.tsx`
+### (Opsional, untuk hak akses granular) `src/contexts/AuthContext.tsx`
 
 Tambahkan `kepuasanRoles` dengan pola identik `budayaRoles` (state, kolom
 `kepuasan_roles` di query cascading-fallback, dan field baru di value

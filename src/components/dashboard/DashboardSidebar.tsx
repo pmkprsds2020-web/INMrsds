@@ -41,6 +41,9 @@ import {
   Users,
   Building2,
   Trophy,
+  MessageSquare,
+  QrCode,
+  Gauge,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -198,6 +201,7 @@ export function DashboardSidebar({
     ikp: false,
     risk: false,
     survey: false,
+    kepuasanSurvey: false,
     uimu: false,
     customInd: false,
     analytics: false,
@@ -216,6 +220,7 @@ export function DashboardSidebar({
     else if (activeTab.startsWith('ikp-')) group = 'ikp';
     else if (activeTab.startsWith('risk-')) group = 'risk';
     else if (activeTab.startsWith('budaya-')) group = 'survey';
+    else if (activeTab.startsWith('kepuasan-')) group = 'kepuasanSurvey';
     else if (activeTab.startsWith('uimu-')) group = 'uimu';
     else if (activeTab.startsWith('custom-ind-')) group = 'customInd';
     else if (['tren', 'kepatuhan', 'ringkasan', 'export-templates', 'ai-insights', 'activity-heatmap', 'data-quality', 'compliance-timeline'].includes(activeTab)) group = 'analytics';
@@ -1035,6 +1040,73 @@ export function DashboardSidebar({
                   <motion.div
                     layoutId="sidebar-budaya-active"
                     className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-emerald-500"
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
+                  <item.icon className="size-3.5 text-muted-foreground" />
+                </span>
+                {!miniMode && (
+                  <span className="text-xs font-medium relative">{item.label}</span>
+                )}
+              </button>
+            </TooltipTrigger>
+            {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
+          </Tooltip>
+        ))}
+        </CollapsibleContent>
+      </div>
+      </Collapsible>
+
+      <Separator className="bg-border" />
+
+      {/* ── Survey Kepuasan Pasien section ─────────────────────── */}
+      <Collapsible open={miniMode ? true : openGroups.kepuasanSurvey} onOpenChange={() => !miniMode && toggleGroup('kepuasanSurvey')}>
+      <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
+        {!miniMode && (
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+              <ChevronRight
+                className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                  openGroups.kepuasanSurvey ? 'rotate-90' : ''
+                }`}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                Survey Kepuasan Pasien
+              </span>
+              <span className="text-[9px] text-muted-foreground/40 font-medium">8</span>
+            </button>
+          </CollapsibleTrigger>
+        )}
+        <CollapsibleContent>
+        {[
+          { id: 'kepuasan-dashboard', icon: Gauge, label: 'Dashboard' },
+          { id: 'kepuasan-aktif', icon: ListTodo, label: 'Survey Aktif' },
+          { id: 'kepuasan-buat', icon: ClipboardList, label: 'Buat Survey' },
+          { id: 'kepuasan-distribusi', icon: QrCode, label: 'Distribusi (Link/QR)' },
+          { id: 'kepuasan-responses', icon: FileSearch, label: 'Responses' },
+          { id: 'kepuasan-kritik-saran', icon: MessageSquare, label: 'Kritik & Saran' },
+          { id: 'kepuasan-monev', icon: TrendingUp, label: 'Monev' },
+          { id: 'kepuasan-riwayat', icon: History, label: 'Riwayat Survey' },
+        ].map((item) => (
+          <Tooltip key={item.id}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleTabChange(item.id)}
+                className={`
+                  group relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-all duration-200
+                  ${
+                    activeTab === item.id
+                      ? 'bg-pink-500/10 text-pink-500'
+                      : 'text-foreground/60 hover:bg-muted/30 hover:text-foreground/80'
+                  }
+                  ${miniMode ? 'justify-center' : ''}
+                `}
+              >
+                {activeTab === item.id && (
+                  <motion.div
+                    layoutId="sidebar-kepuasan-active"
+                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-pink-500"
                     transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                   />
                 )}
