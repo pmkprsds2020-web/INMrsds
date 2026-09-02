@@ -299,7 +299,10 @@ as $$
   join public.kepuasan_surveys s on s.id = t.survey_id
   where t.token = p_token
     and s.status = 'aktif'
-    and current_date between s.start_date and s.end_date
+    -- Dibandingkan dalam zona waktu Asia/Jakarta (bukan current_date server
+    -- yang defaultnya UTC) supaya survei yang di-set mulai "hari ini" oleh
+    -- admin di Indonesia langsung aktif, bukan baru aktif besok pagi UTC.
+    and (now() at time zone 'Asia/Jakarta')::date between s.start_date and s.end_date
     and (t.expires_at is null or t.expires_at > now())
     and (t.max_uses is null or t.used_count < t.max_uses);
 $$;
@@ -341,7 +344,10 @@ begin
   join public.kepuasan_surveys s on s.id = t.survey_id
   where t.token = p_token
     and s.status = 'aktif'
-    and current_date between s.start_date and s.end_date
+    -- Dibandingkan dalam zona waktu Asia/Jakarta (bukan current_date server
+    -- yang defaultnya UTC) supaya survei yang di-set mulai "hari ini" oleh
+    -- admin di Indonesia langsung aktif, bukan baru aktif besok pagi UTC.
+    and (now() at time zone 'Asia/Jakarta')::date between s.start_date and s.end_date
     and (t.expires_at is null or t.expires_at > now())
     and (t.max_uses is null or t.used_count < t.max_uses);
 
