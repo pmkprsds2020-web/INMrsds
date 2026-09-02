@@ -61,7 +61,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { UNIT_MAP, INDICATORS, type IndicatorType } from '@/types';
-import { getActiveUnitIndicatorsForUnit, subscribeToCustomIndicators } from '@/lib/customIndicatorData';
+import { getActiveUnitIndicatorsForUnit, getActivePriorityIndicatorsForUnit, subscribeToCustomIndicators } from '@/lib/customIndicatorData';
 import type { CustomIndicator } from '@/types/customIndicators';
 import { cn } from '@/lib/utils';
 
@@ -188,6 +188,40 @@ export function DashboardSidebar({
     support: true,
   });
 
+  /* Top-level sidebar groups (accordion). Only "mutu" (data entry
+     indikator) is open by default — the other groups open automatically
+     when the active tab belongs to them, keeping the sidebar short. */
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    mutu: true,
+    unitInd: true,
+    priorityInd: true,
+    ikp: false,
+    risk: false,
+    survey: false,
+    uimu: false,
+    customInd: false,
+    analytics: false,
+  });
+  const toggleGroup = (key: string) =>
+    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  /* Auto-expand the group that contains the currently active tab, so
+     navigating from elsewhere (top bar, deep link, refresh) never lands
+     on a hidden/collapsed menu item. */
+  useEffect(() => {
+    let group: string | null = null;
+    if (activeTab === 'overview' || INDICATORS.some((i) => i.id === activeTab)) group = 'mutu';
+    else if (activeTab.startsWith('unit-ind-')) group = 'unitInd';
+    else if (activeTab.startsWith('priority-ind-')) group = 'priorityInd';
+    else if (activeTab.startsWith('ikp-')) group = 'ikp';
+    else if (activeTab.startsWith('risk-')) group = 'risk';
+    else if (activeTab.startsWith('budaya-')) group = 'survey';
+    else if (activeTab.startsWith('uimu-')) group = 'uimu';
+    else if (activeTab.startsWith('custom-ind-')) group = 'customInd';
+    else if (['tren', 'kepatuhan', 'ringkasan', 'export-templates', 'ai-insights', 'activity-heatmap', 'data-quality', 'compliance-timeline'].includes(activeTab)) group = 'analytics';
+    if (group) setOpenGroups((prev) => (prev[group as string] ? prev : { ...prev, [group as string]: true }));
+  }, [activeTab]);
+
   const unitMeta = UNIT_MAP[activeUnit] ?? UNIT_MAP['all'];
 
   /* Indikator mutu unit (custom, aktif, di-assign ke activeUnit) — untuk
@@ -200,6 +234,21 @@ export function DashboardSidebar({
     function load() {
       if (!activeUnit || activeUnit === 'all') { setUnitIndicators([]); return; }
       getActiveUnitIndicatorsForUnit(activeUnit).then((rows) => { if (!cancelled) setUnitIndicators(rows); }).catch(() => {});
+    }
+    load();
+    const unsub = subscribeToCustomIndicators(load);
+    return () => { cancelled = true; unsub(); };
+  }, [activeUnit]);
+
+  /* Indikator Prioritas RS (custom, aktif, berlaku untuk activeUnit) — untuk
+     section "Indikator Mutu Prioritas" (PIC data entry), padanan section
+     "Indikator Mutu Unit" di atas tapi untuk indicatorType = 'priority_rs'. */
+  const [priorityIndicators, setPriorityIndicators] = useState<CustomIndicator[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    function load() {
+      if (!activeUnit || activeUnit === 'all') { setPriorityIndicators([]); return; }
+      getActivePriorityIndicatorsForUnit(activeUnit).then((rows) => { if (!cancelled) setPriorityIndicators(rows); }).catch(() => {});
     }
     load();
     const unsub = subscribeToCustomIndicators(load);
@@ -341,6 +390,12 @@ export function DashboardSidebar({
 
       <Separator className="bg-border" />
 
+      {/* ── Scrollable nav area: everything below scrolls as one
+           independent region, so the whole menu (down to the last
+           item) is always reachable no matter how many groups exist. ── */}
+      <ScrollArea className="flex-1 min-h-0">
+      <div className="flex flex-col pb-2">
+
       {/* ── Dashboard Overview nav item ───────────────────────── */}
       <div className={miniMode ? 'px-1 py-1' : 'px-2 py-1'}>
         <Tooltip>
@@ -406,8 +461,28 @@ export function DashboardSidebar({
         </Tooltip>
       </div>
 
-      {/* ── Collapsible indicator sections ────────────────────── */}
-      <ScrollArea className="flex-1">
+      {/* ── Indikator Mutu group (collapsible) ────────────────── */}
+      <Collapsible open={miniMode ? true : openGroups.mutu} onOpenChange={() => !miniMode && toggleGroup('mutu')}>
+        {!miniMode && (
+          <div className="px-2 pt-1">
+            <CollapsibleTrigger asChild>
+              <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+                <ChevronRight
+                  className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                    openGroups.mutu ? 'rotate-90' : ''
+                  }`}
+                />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                  Indikator Mutu
+                </span>
+                <span className="text-[9px] text-muted-foreground/40 font-medium">
+                  {filteredIndicators.length}
+                </span>
+              </button>
+            </CollapsibleTrigger>
+          </div>
+        )}
+      <CollapsibleContent>
         <div className={miniMode ? 'px-1 py-1' : 'px-2 py-1'}>
           {miniMode ? (
             /* Mini mode: flat list of icon buttons */
@@ -637,22 +712,35 @@ export function DashboardSidebar({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </CollapsibleContent>
+      </Collapsible>
 
       <Separator className="bg-border" />
 
       {unitIndicators.length > 0 && (
-        <>
+        <Collapsible open={miniMode ? true : openGroups.unitInd} onOpenChange={() => !miniMode && toggleGroup('unitInd')}>
           {/* ── Indikator Mutu Unit section (dinamis per unit, PIC data entry) ── */}
           <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
             {!miniMode && (
-              <button
-                onClick={() => handleTabChange('unit-ind-home')}
-                className="w-full text-left px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 hover:text-cyan-500 transition-colors"
-              >
-                Indikator Mutu Unit
-              </button>
+              <div className="flex items-center">
+                <CollapsibleTrigger asChild>
+                  <button className="shrink-0 p-1 -ml-1 hover:bg-muted/20 rounded transition-colors">
+                    <ChevronRight
+                      className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                        openGroups.unitInd ? 'rotate-90' : ''
+                      }`}
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <button
+                  onClick={() => handleTabChange('unit-ind-home')}
+                  className="flex-1 text-left px-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 hover:text-cyan-500 transition-colors"
+                >
+                  Indikator Mutu Unit
+                </button>
+              </div>
             )}
+            <CollapsibleContent>
             {unitIndicators.map((ind) => {
               const tabId = `unit-ind-${ind.id}`;
               const isActive = activeTab === tabId;
@@ -686,21 +774,95 @@ export function DashboardSidebar({
                 </Tooltip>
               );
             })}
+            </CollapsibleContent>
           </div>
+        </Collapsible>
+      )}
 
-          <Separator className="bg-border" />
-        </>
+      {priorityIndicators.length > 0 && (
+        <Collapsible open={miniMode ? true : openGroups.priorityInd} onOpenChange={() => !miniMode && toggleGroup('priorityInd')}>
+          {/* ── Indikator Mutu Prioritas section (dinamis per unit, PIC data entry) ── */}
+          <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
+            {!miniMode && (
+              <div className="flex items-center">
+                <CollapsibleTrigger asChild>
+                  <button className="shrink-0 p-1 -ml-1 hover:bg-muted/20 rounded transition-colors">
+                    <ChevronRight
+                      className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                        openGroups.priorityInd ? 'rotate-90' : ''
+                      }`}
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <button
+                  onClick={() => handleTabChange('priority-ind-home')}
+                  className="flex-1 text-left px-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 hover:text-fuchsia-500 transition-colors"
+                >
+                  Indikator Mutu Prioritas
+                </button>
+              </div>
+            )}
+            <CollapsibleContent>
+            {priorityIndicators.map((ind) => {
+              const tabId = `priority-ind-${ind.id}`;
+              const isActive = activeTab === tabId;
+              return (
+                <Tooltip key={ind.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleTabChange(tabId)}
+                      className={cn(
+                        'group relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-all duration-200',
+                        isActive ? 'bg-fuchsia-500/10 text-fuchsia-500' : 'text-foreground/60 hover:bg-muted/30 hover:text-foreground/80',
+                        miniMode ? 'justify-center' : ''
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="sidebar-priority-ind-active"
+                          className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-fuchsia-500"
+                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <span className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
+                        <Trophy className="size-3.5 text-muted-foreground" />
+                      </span>
+                      {!miniMode && (
+                        <span className="text-xs font-medium relative truncate">{ind.name}</span>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  {miniMode && <TooltipContent side="right">{ind.name}</TooltipContent>}
+                </Tooltip>
+              );
+            })}
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
       )}
 
       <Separator className="bg-border" />
 
+
       {/* ── IKP / Keselamatan Pasien section ─────────────────── */}
+      <Collapsible open={miniMode ? true : openGroups.ikp} onOpenChange={() => !miniMode && toggleGroup('ikp')}>
       <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
         {!miniMode && (
-          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            IKP / Keselamatan Pasien
-          </p>
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+              <ChevronRight
+                className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                  openGroups.ikp ? 'rotate-90' : ''
+                }`}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                IKP / Keselamatan Pasien
+              </span>
+              <span className="text-[9px] text-muted-foreground/40 font-medium">9</span>
+            </button>
+          </CollapsibleTrigger>
         )}
+        <CollapsibleContent>
         {[
           { id: 'ikp-dashboard', icon: ShieldAlert, label: 'Dashboard IKP' },
           { id: 'ikp-form', icon: ClipboardList, label: 'Pelaporan Insiden' },
@@ -744,17 +906,31 @@ export function DashboardSidebar({
             {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
           </Tooltip>
         ))}
+        </CollapsibleContent>
       </div>
+      </Collapsible>
 
       <Separator className="bg-border" />
 
       {/* ── Manajemen Risiko section ──────────────────────────── */}
+      <Collapsible open={miniMode ? true : openGroups.risk} onOpenChange={() => !miniMode && toggleGroup('risk')}>
       <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
         {!miniMode && (
-          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Manajemen Risiko
-          </p>
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+              <ChevronRight
+                className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                  openGroups.risk ? 'rotate-90' : ''
+                }`}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                Manajemen Risiko
+              </span>
+              <span className="text-[9px] text-muted-foreground/40 font-medium">11</span>
+            </button>
+          </CollapsibleTrigger>
         )}
+        <CollapsibleContent>
         {[
           { id: 'risk-dashboard', icon: ShieldAlert, label: 'Dashboard Risiko' },
           { id: 'risk-register', icon: ListChecks, label: 'Risk Register' },
@@ -800,17 +976,31 @@ export function DashboardSidebar({
             {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
           </Tooltip>
         ))}
+        </CollapsibleContent>
       </div>
+      </Collapsible>
 
       <Separator className="bg-border" />
 
       {/* ── Survey Budaya Keselamatan Pasien section ─────────────── */}
+      <Collapsible open={miniMode ? true : openGroups.survey} onOpenChange={() => !miniMode && toggleGroup('survey')}>
       <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
         {!miniMode && (
-          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Survey Budaya Keselamatan
-          </p>
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+              <ChevronRight
+                className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                  openGroups.survey ? 'rotate-90' : ''
+                }`}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                Survey Budaya Keselamatan
+              </span>
+              <span className="text-[9px] text-muted-foreground/40 font-medium">14</span>
+            </button>
+          </CollapsibleTrigger>
         )}
+        <CollapsibleContent>
         {[
           { id: 'budaya-dashboard', icon: ShieldCheck, label: 'Dashboard' },
           { id: 'budaya-aktif', icon: ListTodo, label: 'Survey Aktif' },
@@ -859,17 +1049,31 @@ export function DashboardSidebar({
             {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
           </Tooltip>
         ))}
+        </CollapsibleContent>
       </div>
+      </Collapsible>
 
       <Separator className="bg-border" />
 
       {/* ── Usulan Indikator Mutu Unit section ────────────────── */}
+      <Collapsible open={miniMode ? true : openGroups.uimu} onOpenChange={() => !miniMode && toggleGroup('uimu')}>
       <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
         {!miniMode && (
-          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Usulan Indikator Mutu Unit
-          </p>
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+              <ChevronRight
+                className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                  openGroups.uimu ? 'rotate-90' : ''
+                }`}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                Usulan Indikator Mutu Unit
+              </span>
+              <span className="text-[9px] text-muted-foreground/40 font-medium">9</span>
+            </button>
+          </CollapsibleTrigger>
         )}
+        <CollapsibleContent>
         {[
           { id: 'uimu-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
           { id: 'uimu-form', icon: ClipboardList, label: 'Buat Usulan' },
@@ -913,17 +1117,31 @@ export function DashboardSidebar({
             {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
           </Tooltip>
         ))}
+        </CollapsibleContent>
       </div>
+      </Collapsible>
 
       <Separator className="bg-border" />
 
       {/* ── Master Indikator Mutu Custom section ──────────────── */}
+      <Collapsible open={miniMode ? true : openGroups.customInd} onOpenChange={() => !miniMode && toggleGroup('customInd')}>
       <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
         {!miniMode && (
-          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Master Indikator Mutu
-          </p>
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+              <ChevronRight
+                className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                  openGroups.customInd ? 'rotate-90' : ''
+                }`}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                Master Indikator Mutu
+              </span>
+              <span className="text-[9px] text-muted-foreground/40 font-medium">8</span>
+            </button>
+          </CollapsibleTrigger>
         )}
+        <CollapsibleContent>
         {[
           { id: 'custom-ind-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
           { id: 'custom-ind-all', icon: ListChecks, label: 'Semua Indikator' },
@@ -966,17 +1184,31 @@ export function DashboardSidebar({
             {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
           </Tooltip>
         ))}
+        </CollapsibleContent>
       </div>
+      </Collapsible>
 
       <Separator className="bg-border" />
 
       {/* ── Analytics section ─────────────────────────────────── */}
+      <Collapsible open={miniMode ? true : openGroups.analytics} onOpenChange={() => !miniMode && toggleGroup('analytics')}>
       <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
         {!miniMode && (
-          <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Analitik
-          </p>
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+              <ChevronRight
+                className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                  openGroups.analytics ? 'rotate-90' : ''
+                }`}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                Analitik
+              </span>
+              <span className="text-[9px] text-muted-foreground/40 font-medium">8</span>
+            </button>
+          </CollapsibleTrigger>
         )}
+        <CollapsibleContent>
         {[
           { id: 'tren', icon: TrendingUp, label: 'Tren Bulanan' },
           { id: 'kepatuhan', icon: BarChart3, label: 'Kepatuhan Unit' },
@@ -1020,7 +1252,12 @@ export function DashboardSidebar({
             {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
           </Tooltip>
         ))}
+        </CollapsibleContent>
       </div>
+      </Collapsible>
+
+      </div>
+      </ScrollArea>
 
       <Separator className="bg-border" />
 
