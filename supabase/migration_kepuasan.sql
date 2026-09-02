@@ -36,9 +36,17 @@ alter table public.profiles
 comment on column public.profiles.kepuasan_roles is
   'Peran tambahan khusus modul Survey Kepuasan Pasien: admin_mutu, unit. ''admin'' (role dasar) otomatis punya semua hak modul ini.';
 
+-- CATATAN: daftar ini HARUS memuat seluruh nilai `type` yang sudah pernah
+-- ditulis oleh migrasi modul lain di project Anda (migration_ikp.sql,
+-- migration_risk.sql, migration_budaya.sql, migration_usulan_indikator.sql,
+-- migration_custom_indicators.sql), bukan hanya subset yang relevan untuk
+-- modul kepuasan — karena constraint ini menimpa (drop+recreate) constraint
+-- yang sama di tabel `audit_logs` yang dipakai bersama semua modul. Bila
+-- Anda menambah migrasi baru lain di kemudian hari yang memakai nilai
+-- `type` baru, tambahkan juga di sini (dan sebaliknya).
 alter table public.audit_logs drop constraint if exists audit_logs_type_check;
 alter table public.audit_logs add constraint audit_logs_type_check
-  check (type in ('block', 'login', 'input', 'mapping', 'ikp', 'risk', 'budaya', 'kepuasan'));
+  check (type in ('block', 'login', 'input', 'mapping', 'ikp', 'risk', 'budaya', 'uimu', 'custom_indicator', 'kepuasan'));
 
 -- ============================================================================
 -- 1. SURVEY
