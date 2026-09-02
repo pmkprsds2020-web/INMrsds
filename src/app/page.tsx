@@ -34,7 +34,6 @@ import { BudayaModule } from '@/components/dashboard/budaya/BudayaModule';
 import { UimuModule } from '@/components/dashboard/uimu/UimuModule';
 import { CustomIndicatorModule } from '@/components/dashboard/custom-indicators/CustomIndicatorModule';
 import { UnitIndicatorModule } from '@/components/dashboard/custom-indicators/UnitIndicatorModule';
-import { PriorityIndicatorModule } from '@/components/dashboard/custom-indicators/PriorityIndicatorModule';
 import { useKeyboardShortcuts, getDashboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import {
   Sheet,
@@ -240,7 +239,7 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     async function loadEntries() {
-      if (!activeTab || activeTab === 'tren' || activeTab === 'kepatuhan' || activeTab === 'overview' || activeTab === 'ringkasan' || activeTab === 'ai-insights' || activeTab === 'activity-heatmap' || activeTab === 'data-quality' || activeTab === 'compliance-timeline' || activeTab === 'export-templates' || activeTab.startsWith('ikp-') || activeTab.startsWith('risk-') || activeTab.startsWith('budaya-') || activeTab.startsWith('uimu-') || activeTab.startsWith('custom-ind-') || activeTab.startsWith('unit-ind-') || activeTab.startsWith('priority-ind-')) {
+      if (!activeTab || activeTab === 'tren' || activeTab === 'kepatuhan' || activeTab === 'overview' || activeTab === 'ringkasan' || activeTab === 'ai-insights' || activeTab === 'activity-heatmap' || activeTab === 'data-quality' || activeTab === 'compliance-timeline' || activeTab === 'export-templates' || activeTab.startsWith('ikp-') || activeTab.startsWith('risk-') || activeTab.startsWith('budaya-') || activeTab.startsWith('uimu-') || activeTab.startsWith('custom-ind-') || activeTab.startsWith('unit-ind-')) {
         setIsLoading(false);
         return;
       }
@@ -351,7 +350,7 @@ function Dashboard() {
       }
     }
     // Override with current tab's filtered entries for accuracy
-    if (activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'overview' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && activeTab !== 'export-templates' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-') && !activeTab.startsWith('unit-ind-') && !activeTab.startsWith('priority-ind-')) {
+    if (activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'overview' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && activeTab !== 'export-templates' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-') && !activeTab.startsWith('unit-ind-')) {
       counts[activeTab] = entries.length;
     }
     return counts;
@@ -677,7 +676,7 @@ function Dashboard() {
   useKeyboardShortcuts({
     shortcuts: getDashboardShortcuts({
       onAddNew: () => {
-        if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('budaya-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-') && !activeTab.startsWith('unit-ind-') && !activeTab.startsWith('priority-ind-') && !accessBlocked) {
+        if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('budaya-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-') && !activeTab.startsWith('unit-ind-') && !accessBlocked) {
           const entry = createDefaultEntry(activeTab as IndicatorType, activeUnit, user?.uid || '');
           handleAddEntry(entry).catch(() => {});
         }
@@ -845,17 +844,6 @@ function Dashboard() {
     if (activeTab.startsWith('unit-ind-')) {
       return (
         <UnitIndicatorModule
-          activeTab={activeTab}
-          userId={user?.uid || ''}
-          userName={user?.displayName || user?.email || 'Pengguna'}
-          activeUnit={activeUnit}
-          onNavigate={(tab) => setActiveTab(tab)}
-        />
-      );
-    }
-    if (activeTab.startsWith('priority-ind-')) {
-      return (
-        <PriorityIndicatorModule
           activeTab={activeTab}
           userId={user?.uid || ''}
           userName={user?.displayName || user?.email || 'Pengguna'}
@@ -1075,7 +1063,7 @@ function Dashboard() {
         {/* Quick Actions Widget */}
         <QuickActionsWidget
           onAddEntry={() => {
-            if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('budaya-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-') && !activeTab.startsWith('unit-ind-') && !activeTab.startsWith('priority-ind-') && !accessBlocked) {
+            if (activeTab !== 'overview' && activeTab !== 'tren' && activeTab !== 'kepatuhan' && activeTab !== 'ringkasan' && activeTab !== 'ai-insights' && activeTab !== 'activity-heatmap' && activeTab !== 'data-quality' && activeTab !== 'compliance-timeline' && !activeTab.startsWith('ikp-') && !activeTab.startsWith('risk-') && !activeTab.startsWith('budaya-') && !activeTab.startsWith('uimu-') && !activeTab.startsWith('custom-ind-') && !activeTab.startsWith('unit-ind-') && !accessBlocked) {
               const entry = createDefaultEntry(activeTab as IndicatorType, activeUnit, user?.uid || '');
               handleAddEntry(entry).catch(() => {});
             }
