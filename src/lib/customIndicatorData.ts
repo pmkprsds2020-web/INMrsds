@@ -221,6 +221,21 @@ export async function getActiveUnitIndicatorsForUnit(unitId: string): Promise<Cu
   return getCustomIndicators({ status: 'active', indicatorType: 'unit', unitId });
 }
 
+/**
+ * Indikator Prioritas RS yang AKTIF dan terlihat oleh unit tertentu — dipakai
+ * modul "Indikator Mutu Prioritas" (PIC data entry) dan sidebar, sama seperti
+ * getActiveUnitIndicatorsForUnit tapi untuk indicatorType = 'priority_rs'.
+ * Mayoritas indikator prioritas RS berstatus is_all_units = true (default
+ * saat dibuat lewat wizard), jadi biasanya muncul untuk semua unit; unit yang
+ * "berpartisipasi" tetap bisa dibatasi lewat custom_indicator_units seperti
+ * indikator unit biasa. Otomatis ikut hilang begitu dinonaktifkan di Master
+ * Indikator Mutu (sama seperti indikator unit).
+ */
+export async function getActivePriorityIndicatorsForUnit(unitId: string): Promise<CustomIndicator[]> {
+  return getCustomIndicators({ status: 'active', indicatorType: 'priority_rs', unitId });
+}
+
+
 export async function getCustomIndicatorById(id: string): Promise<CustomIndicator | null> {
   const { data, error } = await supabase.from(INDICATORS_TABLE).select('*').eq('id', id).maybeSingle();
   if (error) throw error;
