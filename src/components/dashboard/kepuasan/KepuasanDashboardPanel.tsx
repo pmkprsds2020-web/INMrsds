@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, RefreshCcw, Users, Gauge, Award, Target } from 'lucide-react';
+import { toast } from 'sonner';
 import { getKepuasanSurveys, getKepuasanPeriodResult, getKepuasanUnitBreakdown, recomputeKepuasanPeriodResult } from '@/lib/kepuasanData';
 import { KEPUASAN_UNSUR_FIELDS, KEPUASAN_UNSUR_LABEL, formatKepuasanTarget, type KepuasanSurvey, type KepuasanPeriodResult } from '@/types/kepuasan';
 
@@ -70,6 +71,11 @@ export function KepuasanDashboardPanel({ surveyId: initialSurveyId, userId, onSe
       setResult(r);
       if (s?.unitId === 'all') setUnitBreakdown(await getKepuasanUnitBreakdown(id));
       else setUnitBreakdown([]);
+    } catch (err) {
+      // Jangan biarkan error diam-diam membuat dashboard menampilkan
+      // "Belum ada response" padahal datanya ada — beri tahu penggunanya.
+      console.error('[KepuasanDashboardPanel] gagal memuat hasil survei:', err);
+      toast.error('Gagal memuat hasil survei. Coba tekan Refresh.');
     } finally {
       setLoading(false);
     }

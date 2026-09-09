@@ -180,11 +180,17 @@ comment on table public.kepuasan_responses is
 create table if not exists public.kepuasan_period_results (
   id                 uuid primary key default gen_random_uuid(),
   survey_id          uuid not null references public.kepuasan_surveys (id) on delete cascade,
-  -- unit_id = NULL berarti ringkasan gabungan seluruh unit pada survei ini;
-  -- baris tambahan per unit_id spesifik dibuat ketika survei unit_id='all'
-  -- dan pasien memilih unit berbeda-beda, supaya dashboard bisa difilter
-  -- per unit (bagian 21/23/29).
-  unit_id            text,
+  -- unit_id = '__overall__' (lihat KEPUASAN_OVERALL_UNIT_SENTINEL di
+  -- kepuasanData.ts) berarti ringkasan gabungan seluruh unit pada survei
+  -- ini; baris tambahan per unit_id spesifik dibuat ketika survei
+  -- unit_id='all' dan pasien memilih unit berbeda-beda, supaya dashboard
+  -- bisa difilter per unit (bagian 21/23/29). SENGAJA NOT NULL + nilai
+  -- sentinel tetap (bukan NULL) supaya `unique (survey_id, unit_id)` di
+  -- bawah benar-benar menegakkan satu baris ringkasan per survei — di
+  -- Postgres dua NULL tidak dianggap sama untuk keperluan unique
+  -- constraint, sehingga NULL di sini akan membuat baris menumpuk setiap
+  -- kali dashboard dibuka (lihat hotfix_kepuasan_period_results_dedup.sql).
+  unit_id            text not null default '__overall__',
   total_respondents  int not null default 0,
   unsur_averages     jsonb not null default '{}'::jsonb,   -- { "u1_persyaratan": 3.40, ... } — NRR per unsur
   nilai_indeks       numeric(6, 4),                        -- NI = rata-rata NRR tertimbang (bobot 1/9 tiap unsur)

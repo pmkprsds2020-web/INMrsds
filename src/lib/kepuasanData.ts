@@ -27,6 +27,22 @@ const RESPONSES_TABLE = 'kepuasan_responses';
 const PERIOD_RESULTS_TABLE = 'kepuasan_period_results';
 const AUDIT_TABLE = 'audit_logs';
 
+/**
+ * Nilai tetap dipakai sebagai pengganti unit_id=NULL pada
+ * kepuasan_period_results untuk baris "ringkasan gabungan semua unit".
+ * ALASAN: `unique (survey_id, unit_id)` di Postgres TIDAK menganggap dua
+ * NULL sebagai duplikat, sehingga upsert dengan unit_id NULL selalu
+ * menyisipkan baris baru alih-alih meng-update baris lama — baris
+ * menumpuk setiap kali dashboard dibuka (recompute dipanggil tiap load),
+ * lalu `.maybeSingle()` di getKepuasanPeriodResult() gagal dengan
+ * PGRST116 begitu ada >1 baris. Lihat
+ * supabase/hotfix_kepuasan_period_results_dedup.sql untuk detail & migrasi
+ * data lama. Fungsi rowToPeriodResult() memetakan sentinel ini kembali ke
+ * `unitId: null` di boundary, jadi tidak ada perubahan pada tipe/DTO yang
+ * dikonsumsi komponen.
+ */
+const KEPUASAN_OVERALL_UNIT_SENTINEL = '__overall__';
+
 type Unsubscribe = () => void;
 
 // ────────────────────────────────────────────────────────────────
@@ -117,7 +133,7 @@ function rowToPeriodResult(row: Record<string, any>): KepuasanPeriodResult {
   return {
     id: row.id,
     surveyId: row.survey_id,
-    unitId: row.unit_id,
+    unitId: row.unit_id === KEPUASAN_OVERALL_UNIT_SENTINEL ? null : row.unit_id,
     totalRespondents: row.total_respondents,
     unsurAverages: row.unsur_averages ?? {},
     nilaiIndeks: row.nilai_indeks === null ? null : Number(row.nilai_indeks),
@@ -447,15 +463,22 @@ export function computeKepuasanFromResponses(
 }
 
 export async function getKepuasanPeriodResult(surveyId: string, unitId: string | null = null): Promise<KepuasanPeriodResult | null> {
-  let query = supabase.from(PERIOD_RESULTS_TABLE).select('*').eq('survey_id', surveyId);
-  query = unitId === null ? query.is('unit_id', null) : query.eq('unit_id', unitId);
+  const query = supabase
+    .from(PERIOD_RESULTS_TABLE)
+    .select('*')
+    .eq('survey_id', surveyId)
+    .eq('unit_id', unitId === null ? KEPUASAN_OVERALL_UNIT_SENTINEL : unitId);
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
   return data ? rowToPeriodResult(data) : null;
 }
 
 export async function getKepuasanUnitBreakdown(surveyId: string): Promise<KepuasanPeriodResult[]> {
-  const { data, error } = await supabase.from(PERIOD_RESULTS_TABLE).select('*').eq('survey_id', surveyId).not('unit_id', 'is', null);
+  const { data, error } = await supabase
+    .from(PERIOD_RESULTS_TABLE)
+    .select('*')
+    .eq('survey_id', surveyId)
+    .neq('unit_id', KEPUASAN_OVERALL_UNIT_SENTINEL);
   if (error) throw error;
   return (data as any[]).map(rowToPeriodResult);
 }
@@ -478,7 +501,7 @@ export async function recomputeKepuasanPeriodResult(surveyId: string, actorId?: 
   await supabase.from(PERIOD_RESULTS_TABLE).upsert(
     {
       survey_id: surveyId,
-      unit_id: null,
+      unit_id: KEPUASAN_OVERALL_UNIT_SENTINEL,
       total_respondents: overall.totalRespondents,
       unsur_averages: overall.unsurAverages,
       nilai_indeks: overall.nilaiIndeks,
