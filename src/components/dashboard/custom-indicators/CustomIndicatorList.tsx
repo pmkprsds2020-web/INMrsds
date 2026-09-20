@@ -15,6 +15,10 @@ import {
   STATUS_LABEL, STATUS_COLOR, INDICATOR_KIND_LABEL, ASSIGNABLE_UNIT_IDS, DEFAULT_CATEGORIES,
 } from '@/types/customIndicators';
 import { getCustomIndicators } from '@/lib/customIndicatorData';
+import { ImportButton } from '@/components/import/ImportButton';
+import { TemplateDownloadButton } from '@/components/import/TemplateDownloadButton';
+import { imutUnitImportConfig } from '@/lib/import-engine/configs/imutUnit';
+import { imutPrioritasImportConfig } from '@/lib/import-engine/configs/imutPrioritas';
 
 type ListScope = 'all' | 'active' | 'inactive' | 'unit' | 'priority_rs';
 
@@ -37,17 +41,19 @@ function StatusBadge({ status }: { status: CustomIndicatorStatus }) {
 interface CustomIndicatorListProps {
   scope: ListScope;
   isManager: boolean;
+  userId: string;
   onSelect: (id: string) => void;
   onCreateNew: () => void;
 }
 
-export function CustomIndicatorList({ scope, isManager, onSelect, onCreateNew }: CustomIndicatorListProps) {
+export function CustomIndicatorList({ scope, isManager, userId, onSelect, onCreateNew }: CustomIndicatorListProps) {
   const [rows, setRows] = useState<CustomIndicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const meta = SCOPE_META[scope];
+  const importConfig = scope === 'unit' ? imutUnitImportConfig : scope === 'priority_rs' ? imutPrioritasImportConfig : null;
 
   async function load() {
     setLoading(true);
@@ -82,9 +88,17 @@ export function CustomIndicatorList({ scope, isManager, onSelect, onCreateNew }:
           <h2 className="text-lg font-semibold">{meta.title}</h2>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">{meta.description}</p>
         </div>
-        {isManager && (
-          <Button size="sm" onClick={onCreateNew} className="gap-1.5"><Plus className="size-4" /> Buat Indikator Baru</Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isManager && importConfig && (
+            <>
+              <TemplateDownloadButton config={importConfig} />
+              <ImportButton config={importConfig} userId={userId} onImported={load} />
+            </>
+          )}
+          {isManager && (
+            <Button size="sm" onClick={onCreateNew} className="gap-1.5"><Plus className="size-4" /> Buat Indikator Baru</Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

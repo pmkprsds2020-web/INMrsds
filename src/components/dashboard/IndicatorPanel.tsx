@@ -4,7 +4,6 @@ import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
-  FileSpreadsheet,
   ShieldAlert,
   Trash2,
   CheckCircle2,
@@ -25,7 +24,6 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Download,
   ArrowLeftRight,
   ChevronLeft,
   ChevronRight,
@@ -77,7 +75,10 @@ import {
 
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DateFilterBar } from '@/components/dashboard/DateFilterBar';
-import { ImportModal } from '@/components/dashboard/ImportModal';
+import { ImportButton } from '@/components/import/ImportButton';
+import { TemplateDownloadButton } from '@/components/import/TemplateDownloadButton';
+import { ExportButton } from '@/components/import/ExportButton';
+import { buildInmImportConfig, inmEntryToExportRow } from '@/lib/import-engine/configs/inm';
 import { EmptyState } from '@/components/dashboard/EmptyState';
 import { DataEntryModal } from '@/components/dashboard/DataEntryModal';
 
@@ -556,7 +557,6 @@ export function IndicatorPanel({
   blockReason,
   allEntries = [],
 }: IndicatorPanelProps) {
-  const [importOpen, setImportOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
@@ -575,6 +575,7 @@ export function IndicatorPanel({
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
   const meta = useMemo(() => INDICATORS.find((i) => i.id === type)!, [type]);
+  const inmImportConfig = useMemo(() => buildInmImportConfig(type, activeUnit), [type, activeUnit]);
   const stats = useMemo(() => calculateStats(type, entries), [type, entries]);
   const Icon = ICON_MAP[meta.icon] ?? FileText;
 
@@ -738,96 +739,6 @@ export function IndicatorPanel({
     },
     [onUpdateEntry]
   );
-
-  /* ── Export single indicator ──────────────────────────────── */
-  const handleExportSingle = useCallback(async () => {
-    const XLSX = await import('xlsx');
-    const data = filteredEntries;
-    if (data.length === 0) {
-      toast.error('Tidak ada data untuk diekspor');
-      return;
-    }
-
-    const rows = data.map((e, idx) => {
-      const base: Record<string, unknown> = {
-        'No': idx + 1,
-        'Tanggal': e.date || '',
-        'Unit': e.unitId || '',
-      };
-      switch (e.indicatorType) {
-        case 'tangan': {
-          const t = e as TanganEntry;
-          Object.assign(base, {
-            'Petugas': t.staff, 'Observer': t.observer, 'Ruangan': t.room,
-            'M1': t.m1 ? 'Ya' : 'Tidak', 'M2': t.m2 ? 'Ya' : 'Tidak', 'M3': t.m3 ? 'Ya' : 'Tidak',
-            'M4': t.m4 ? 'Ya' : 'Tidak', 'M5': t.m5 ? 'Ya' : 'Tidak',
-            'Metode': t.method, 'Patuh': t.patuh === true ? 'Ya' : t.patuh === false ? 'Tidak' : '—',
-          });
-          break;
-        }
-        case 'visite': {
-          const v = e as VisiteEntry;
-          Object.assign(base, { 'Dokter': v.doctor, 'Waktu': v.time, 'Patuh': isVisitePatuh(v.time) ? 'Ya' : 'Tidak' });
-          break;
-        }
-        case 'identitas': {
-          const i = e as IdentitasEntry;
-          Object.assign(base, { 'Petugas': i.staff, 'Observer': i.observer, 'Ruangan': i.room, 'Nama Pasien': i.name, 'No RM': i.rm, 'Pelayanan': i.service, 'Cek Nama': i.nama ? 'Ya' : 'Tidak', 'Cek Tgl': i.tgl ? 'Ya' : 'Tidak' });
-          break;
-        }
-        case 'apd': {
-          const a = e as ApdEntry;
-          Object.assign(base, { 'Ruangan': a.room, 'Petugas': a.staff, 'Kepatuhan': a.comp });
-          break;
-        }
-        case 'jatuh': {
-          const j = e as JatuhEntry;
-          Object.assign(base, { 'No RM': j.rm, 'Awal': j.awal ? 'Ya' : 'Tidak', 'Reassessment': j.re ? 'Ya' : 'Tidak', 'Intervensi': j.inv ? 'Ya' : 'Tidak', 'Cedera': j.cedera ? 'Ya' : 'Tidak' });
-          break;
-        }
-        case 'sc': {
-          const s = e as ScEntry;
-          Object.assign(base, { 'No RM': s.rm, 'Diagnosis': s.diag, '\u226430 Menit': s.ok ? 'Ya' : 'Tidak' });
-          break;
-        }
-        case 'wtrj': {
-          const w = e as WtrjEntry;
-          Object.assign(base, { 'No RM': w.rm, 'Dokter/Poli': w.doc, 'Pendaftaran': w.t1, 'Dilayani': w.t2, 'Selisih (mnt)': timeDiffMinutes(w.t1, w.t2), '>60 Mnt': w.st_checked ? 'Ya' : 'Tidak' });
-          break;
-        }
-        case 'op': {
-          const o = e as OpEntry;
-          Object.assign(base, { 'No RM': o.rm, 'Jadwal': o.t1, 'Aktual': o.t2, 'Selisih (mnt)': timeDiffMinutes(o.t1, o.t2), 'Tertunda': o.tertunda ? 'Ya' : 'Tidak', 'Alasan': o.r });
-          break;
-        }
-        case 'lab': {
-          const l = e as LabEntry;
-          Object.assign(base, { 'No RM': l.rm, 'Pemeriksaan': l.exam, 'Keluar Hasil': l.t1, 'Diterima': l.t2, '\u226430 Mnt': l.num ? 'Ya' : 'Tidak' });
-          break;
-        }
-        case 'fornas': {
-          const f = e as FornasEntry;
-          Object.assign(base, { 'R/Sesuai': f.num, 'R/Tidak Sesuai': f.non, 'Keterangan': f.note });
-          break;
-        }
-        case 'cp': {
-          const c = e as CpEntry;
-          Object.assign(base, { 'Nama Pasien': c.name, 'No RM': c.rm, 'Diagnosis': c.diag, 'Var Terapi': c.vTerapi, 'Var Lab': c.vLab, 'Var Rad': c.vRad, 'Var Lain': c.vLain, 'Ket Lain': c.vLainKet, 'Perawat': c.perawat, 'Farmasi': c.farmasi, 'Gizi': c.gizi, 'LOS': c.los, 'Keterangan': c.ket });
-          break;
-        }
-      }
-      return base;
-    });
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, meta.label.slice(0, 31));
-    const datePart = dateFilter.start && dateFilter.end
-      ? `_${dateFilter.start}_${dateFilter.end}`
-      : dateFilter.start ? `_from_${dateFilter.start}` : '';
-    XLSX.writeFile(wb, `${meta.label.replace(/\s+/g, '_')}${datePart}.xlsx`);
-    toast.success('Berhasil export ke Excel');
-  }, [filteredEntries, meta.label, dateFilter]);
 
   /* ── Date filter handlers ─────────────────────────────────── */
   const handleApplyDate = useCallback(() => {
@@ -1073,36 +984,14 @@ export function IndicatorPanel({
           </TooltipTrigger>
           <TooltipContent>Tambah Data Baru</TooltipContent>
         </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setImportOpen(true)}
-              disabled={isLoading || accessBlocked}
-              className="h-8 border-border text-foreground/70 hover:text-foreground hover:bg-muted text-xs font-medium gap-1.5"
-            >
-              <FileSpreadsheet className="size-3.5" />
-              Import
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Import dari Excel</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleExportSingle}
-              disabled={isLoading || accessBlocked || filteredEntries.length === 0}
-              className="h-8 border-border text-foreground/70 hover:text-foreground hover:bg-muted text-xs font-medium gap-1.5"
-            >
-              <Download className="size-3.5" />
-              Export
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Export ke Excel</TooltipContent>
-        </Tooltip>
+        <TemplateDownloadButton config={inmImportConfig} size="sm" />
+        <ImportButton config={inmImportConfig} userId={userId} size="sm" />
+        <ExportButton
+          config={inmImportConfig}
+          rows={filteredEntries.map(inmEntryToExportRow)}
+          size="sm"
+          label="Export"
+        />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -1258,18 +1147,6 @@ export function IndicatorPanel({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Import Modal (lazy import to avoid circular) ────────── */}
-      {importOpen && (
-        <ImportModalLazy
-          open={importOpen}
-          onClose={() => setImportOpen(false)}
-          type={type}
-          onImport={onImport}
-          activeUnit={activeUnit}
-          userId={userId}
-        />
-      )}
-
       {/* ── Data Entry Modal ─────────────────────────────────────── */}
       <DataEntryModal
         open={dataEntryOpen}
@@ -1282,14 +1159,6 @@ export function IndicatorPanel({
       />
     </div>
   );
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   Lazy-loaded Import Modal
-   ══════════════════════════════════════════════════════════════════ */
-
-function ImportModalLazy(props: React.ComponentProps<typeof ImportModal>) {
-  return <ImportModal {...props} />;
 }
 
 /* ══════════════════════════════════════════════════════════════════

@@ -67,19 +67,19 @@ export function CustomIndicatorModule({ activeTab, userId, userName, activeUnit,
       );
 
     case 'custom-ind-all':
-      return <CustomIndicatorList scope="all" isManager={isManager} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
+      return <CustomIndicatorList scope="all" isManager={isManager} userId={userId} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
 
     case 'custom-ind-active':
-      return <CustomIndicatorList scope="active" isManager={isManager} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
+      return <CustomIndicatorList scope="active" isManager={isManager} userId={userId} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
 
     case 'custom-ind-inactive':
-      return <CustomIndicatorList scope="inactive" isManager={isManager} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
+      return <CustomIndicatorList scope="inactive" isManager={isManager} userId={userId} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
 
     case 'custom-ind-unit':
-      return <CustomIndicatorList scope="unit" isManager={isManager} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
+      return <CustomIndicatorList scope="unit" isManager={isManager} userId={userId} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
 
     case 'custom-ind-priority':
-      return <CustomIndicatorList scope="priority_rs" isManager={isManager} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
+      return <CustomIndicatorList scope="priority_rs" isManager={isManager} userId={userId} onSelect={(id) => setDetail({ indicatorId: id })} onCreateNew={() => onNavigate('custom-ind-new')} />;
 
     case 'custom-ind-audit':
       return <CustomIndicatorAuditTrailPanel />;

@@ -38,7 +38,7 @@ import { id as idLocale } from 'date-fns/locale/id';
 import { ImportButton } from '@/components/import/ImportButton';
 import { TemplateDownloadButton } from '@/components/import/TemplateDownloadButton';
 import { ExportButton } from '@/components/import/ExportButton';
-import { customIndicatorImportConfig } from '@/lib/import-engine/configs/customIndicator';
+import { buildCustomIndicatorImportConfigForKind } from '@/lib/import-engine/configs/customIndicator';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ChartTooltip, ChartLegend);
 
@@ -92,6 +92,8 @@ export function CustomIndicatorDetail({ indicatorId, userId, userName, activeUni
 
   const { indicator, currentVersion, fields, units, allVersions } = bundle;
   const assignedUnits = indicator.isAllUnits ? ASSIGNABLE_UNIT_IDS : units.map((u) => u.unitId);
+  // Template/Import/Export dibatasi ke kind indikator yang sedang dibuka (IMUT Unit / IMUT Prioritas).
+  const importConfig = buildCustomIndicatorImportConfigForKind(indicator.indicatorType);
 
   async function withBusy(fn: () => Promise<void>) {
     setBusy(true);
@@ -190,9 +192,9 @@ export function CustomIndicatorDetail({ indicatorId, userId, userName, activeUni
               <CardTitle className="text-sm">Riwayat Pengukuran</CardTitle>
               {isManager && (
                 <div className="flex items-center gap-2">
-                  <TemplateDownloadButton config={customIndicatorImportConfig} />
+                  <TemplateDownloadButton config={importConfig} />
                   <ExportButton
-                    config={customIndicatorImportConfig}
+                    config={importConfig}
                     label="Export Excel"
                     rows={measurements.map((m) => ({
                       indicator_id: m.indicatorId,
@@ -204,7 +206,7 @@ export function CustomIndicatorDetail({ indicatorId, userId, userName, activeUni
                       notes: m.notes ?? '',
                     }))}
                   />
-                  <ImportButton config={customIndicatorImportConfig} userId={userId} onImported={load} />
+                  <ImportButton config={importConfig} userId={userId} onImported={load} />
                 </div>
               )}
             </CardHeader>
