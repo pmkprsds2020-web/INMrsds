@@ -35,6 +35,10 @@ import { MeasurementForm } from './MeasurementForm';
 import { toastSuccess, toastError } from '@/lib/toast-helpers';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale/id';
+import { ImportButton } from '@/components/import/ImportButton';
+import { TemplateDownloadButton } from '@/components/import/TemplateDownloadButton';
+import { ExportButton } from '@/components/import/ExportButton';
+import { customIndicatorImportConfig } from '@/lib/import-engine/configs/customIndicator';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ChartTooltip, ChartLegend);
 
@@ -182,7 +186,28 @@ export function CustomIndicatorDetail({ indicatorId, userId, userName, activeUni
           ) : null}
 
           <Card>
-            <CardHeader><CardTitle className="text-sm">Riwayat Pengukuran</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+              <CardTitle className="text-sm">Riwayat Pengukuran</CardTitle>
+              {isManager && (
+                <div className="flex items-center gap-2">
+                  <TemplateDownloadButton config={customIndicatorImportConfig} />
+                  <ExportButton
+                    config={customIndicatorImportConfig}
+                    label="Export Excel"
+                    rows={measurements.map((m) => ({
+                      indicator_id: m.indicatorId,
+                      unit_id: m.unitId,
+                      measurement_date: m.measurementDate,
+                      period: m.period,
+                      numerator: m.numerator ?? '',
+                      denominator: m.denominator ?? '',
+                      notes: m.notes ?? '',
+                    }))}
+                  />
+                  <ImportButton config={customIndicatorImportConfig} userId={userId} onImported={load} />
+                </div>
+              )}
+            </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Unit</TableHead><TableHead>Periode</TableHead><TableHead className="text-right">Numerator</TableHead><TableHead className="text-right">Denominator</TableHead><TableHead className="text-right">Nilai</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>

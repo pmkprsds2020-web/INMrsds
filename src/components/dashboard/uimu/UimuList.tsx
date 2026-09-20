@@ -18,6 +18,31 @@ import {
 import { getUimuProposals, subscribeToUimuProposals } from '@/lib/uimuData';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale/id';
+import { ImportButton } from '@/components/import/ImportButton';
+import { TemplateDownloadButton } from '@/components/import/TemplateDownloadButton';
+import { ExportButton } from '@/components/import/ExportButton';
+import { uimuImportConfig } from '@/lib/import-engine/configs/uimu';
+
+function uimuToExportRow(r: UimuProposal): Record<string, unknown> {
+  return {
+    unit_id: r.unitId ?? '',
+    period_year: r.periodYear,
+    status: r.status,
+    indicator_name: r.indicatorName ?? '',
+    indicator_category: r.indicatorCategory ?? '',
+    quality_dimension: r.qualityDimension ?? '',
+    operational_definition: r.operationalDefinition ?? '',
+    numerator: r.numerator ?? '',
+    denominator: r.denominator ?? '',
+    formula: r.formula ?? '',
+    unit_of_measure: r.unitOfMeasure ?? '',
+    target_value: r.targetValue ?? '',
+    target_operator: r.targetOperator ?? '',
+    pic_name: r.picName ?? '',
+    decree_number: r.decreeNumber ?? '',
+    established_date: r.establishedDate ?? '',
+  };
+}
 
 const PAGE_SIZE = 15;
 
@@ -136,11 +161,20 @@ export function UimuList({ userId, mode, canReview, onSelect, onCreateNew, onEdi
           <h2 className="text-lg font-semibold">{meta.title}</h2>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">{meta.description}</p>
         </div>
-        {mode === 'mine' && (
-          <Button size="sm" onClick={onCreateNew} className="gap-1.5">
-            <Plus className="size-4" /> Buat Usulan
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {canReview && (
+            <>
+              <TemplateDownloadButton config={uimuImportConfig} />
+              <ExportButton config={uimuImportConfig} rows={filtered.map(uimuToExportRow)} label="Export Excel" />
+              <ImportButton config={uimuImportConfig} userId={userId} onImported={load} />
+            </>
+          )}
+          {mode === 'mine' && (
+            <Button size="sm" onClick={onCreateNew} className="gap-1.5">
+              <Plus className="size-4" /> Buat Usulan
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

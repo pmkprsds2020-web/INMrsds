@@ -81,6 +81,7 @@ export function RiskModule({ activeTab, userId, userName, activeUnit, canReview,
         <RiskRegisterList
           onSelect={(id) => setDetail({ riskId: id, focusTab: 'info' })}
           onCreateNew={() => onNavigate('risk-form')}
+          userId={userId}
         />
       );
 

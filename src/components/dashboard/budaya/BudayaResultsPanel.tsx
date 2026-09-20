@@ -14,6 +14,11 @@ import {
   BUDAYA_CATEGORY_LABEL, BUDAYA_CATEGORY_COLOR, BUDAYA_SURVEY_STATUS_LABEL,
   type BudayaSurvey, type BudayaDimensionResult, type BudayaDimension, type BudayaQualityIssue,
 } from '@/types/budaya';
+import { ImportButton } from '@/components/import/ImportButton';
+import { TemplateDownloadButton } from '@/components/import/TemplateDownloadButton';
+import { ExportButton } from '@/components/import/ExportButton';
+import { budayaImportConfig } from '@/lib/import-engine/configs/budaya';
+import { supabase } from '@/lib/supabase/client';
 
 export function BudayaResultsPanel({
   surveyId, canReview, userId, onSelectSurvey, onNavigate,
@@ -36,6 +41,7 @@ export function BudayaResultsPanel({
   const [checking, setChecking] = useState(false);
   const [issues, setIssues] = useState<BudayaQualityIssue[] | null>(null);
   const [finalizing, setFinalizing] = useState(false);
+  const [exportRows, setExportRows] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => { getBudayaSurveys().then(setSurveys); getBudayaDimensions().then(setDims); }, []);
   useEffect(() => { if (!selected && surveys.length) setSelected(surveys[0].id); }, [surveys, selected]);
@@ -54,6 +60,15 @@ export function BudayaResultsPanel({
   };
 
   useEffect(() => { if (selected) reload(selected); }, [selected]);
+
+  useEffect(() => {
+    if (!selected) { setExportRows([]); return; }
+    supabase
+      .from('budaya_period_results')
+      .select('survey_id, unit_id, total_respondents, overall_score, overall_category, response_rate')
+      .eq('survey_id', selected)
+      .then(({ data }) => setExportRows(data ?? []));
+  }, [selected, results]);
 
   const handleCheck = async () => {
     if (!selected) return;
@@ -79,8 +94,15 @@ export function BudayaResultsPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-xl font-semibold">Hasil Survey</h2>
+        {canReview && (
+          <div className="flex items-center gap-2">
+            <TemplateDownloadButton config={budayaImportConfig} />
+            <ExportButton config={budayaImportConfig} label="Export Excel" rows={exportRows} />
+            <ImportButton config={budayaImportConfig} userId={userId} onImported={() => selected && reload(selected)} />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">

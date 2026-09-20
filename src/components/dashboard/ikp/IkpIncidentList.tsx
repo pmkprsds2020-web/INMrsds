@@ -17,8 +17,37 @@ import {
 import { subscribeToIkpIncidents } from '@/lib/ikpData';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale/id';
+import { ImportButton } from '@/components/import/ImportButton';
+import { TemplateDownloadButton } from '@/components/import/TemplateDownloadButton';
+import { ExportButton } from '@/components/import/ExportButton';
+import { ikpImportConfig } from '@/lib/import-engine/configs/ikp';
 
 const PAGE_SIZE = 15;
+
+function ikpToExportRow(r: IkpIncident): Record<string, unknown> {
+  return {
+    report_number: r.reportNumber,
+    report_kind: r.reportKind,
+    status: r.status,
+    report_date: r.reportDate,
+    reporter_name: r.reporterName ?? '',
+    reporter_unit: r.reporterUnit ?? '',
+    reporter_profession: r.reporterProfession ?? '',
+    is_anonymous: r.isAnonymous ? 'Ya' : 'Tidak',
+    patient_age_group: r.patientAgeGroup ?? '',
+    patient_gender: r.patientGender ?? '',
+    incident_date: r.incidentDate ?? '',
+    incident_summary: r.incidentSummary ?? '',
+    chronology: r.chronology ?? '',
+    incident_type: r.incidentType ?? '',
+    incident_location: r.incidentLocation ?? '',
+    patient_service_unit: r.patientServiceUnit ?? '',
+    causing_unit: r.causingUnit ?? '',
+    patient_impact: r.patientImpact ?? '',
+    immediate_action: r.immediateAction ?? '',
+    severity_grade: r.severityGrade ?? '',
+  };
+}
 
 function StatusBadge({ status }: { status: IkpIncident['status'] }) {
   return (
@@ -42,9 +71,10 @@ function SeverityDot({ grade }: { grade: IkpIncident['severityGrade'] }) {
 interface IkpIncidentListProps {
   onSelect: (id: string) => void;
   onCreateNew: () => void;
+  userId: string;
 }
 
-export function IkpIncidentList({ onSelect, onCreateNew }: IkpIncidentListProps) {
+export function IkpIncidentList({ onSelect, onCreateNew, userId }: IkpIncidentListProps) {
   const [rows, setRows] = useState<IkpIncident[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -98,7 +128,10 @@ export function IkpIncidentList({ onSelect, onCreateNew }: IkpIncidentListProps)
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Daftar Insiden Keselamatan Pasien</h2>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv}><FileSpreadsheet className="size-4 mr-1.5" />Export</Button>
+          <Button variant="outline" size="sm" onClick={exportCsv}><FileSpreadsheet className="size-4 mr-1.5" />Export CSV</Button>
+          <ExportButton config={ikpImportConfig} rows={filtered.map(ikpToExportRow)} label="Export Excel" />
+          <TemplateDownloadButton config={ikpImportConfig} />
+          <ImportButton config={ikpImportConfig} userId={userId} onImported={() => setFilters((f) => ({ ...f }))} />
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4 mr-1.5" />Print</Button>
           <Button size="sm" onClick={onCreateNew}><Plus className="size-4 mr-1.5" />Laporan Baru</Button>
         </div>

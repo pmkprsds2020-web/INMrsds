@@ -16,8 +16,33 @@ import {
 import { subscribeToRisks } from '@/lib/riskData';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale/id';
+import { ImportButton } from '@/components/import/ImportButton';
+import { TemplateDownloadButton } from '@/components/import/TemplateDownloadButton';
+import { ExportButton } from '@/components/import/ExportButton';
+import { riskImportConfig } from '@/lib/import-engine/configs/risk';
 
 const PAGE_SIZE = 15;
+
+function riskToExportRow(r: Risk): Record<string, unknown> {
+  return {
+    risk_year: r.riskYear,
+    unit_lokasi: r.unitLokasi,
+    category: r.category,
+    subcategory: r.subcategory ?? '',
+    risiko: r.risiko,
+    sebab_insiden: r.sebabInsiden,
+    efek_dampak: r.efekDampak,
+    proses_terdampak: r.prosesTerdampak ?? '',
+    dokumen_spo_terkait: r.dokumenSpoTerkait ?? '',
+    kontrol_existing: r.kontrolExisting ?? '',
+    bukti_pendukung: r.buktiPendukung ?? '',
+    status: r.status,
+    risk_owner_name: r.riskOwnerName ?? '',
+    probabilitas: r.assessment?.probabilitas ?? '',
+    dampak: r.assessment?.dampak ?? '',
+    controllability: r.assessment?.controllability ?? '',
+  };
+}
 
 function StatusBadge({ status }: { status: Risk['status'] }) {
   return (
@@ -42,9 +67,10 @@ function LevelBadge({ level }: { level?: string | null }) {
 interface RiskRegisterListProps {
   onSelect: (id: string) => void;
   onCreateNew: () => void;
+  userId: string;
 }
 
-export function RiskRegisterList({ onSelect, onCreateNew }: RiskRegisterListProps) {
+export function RiskRegisterList({ onSelect, onCreateNew, userId }: RiskRegisterListProps) {
   const [rows, setRows] = useState<Risk[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -105,7 +131,10 @@ export function RiskRegisterList({ onSelect, onCreateNew }: RiskRegisterListProp
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Risk Register</h2>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv}><FileSpreadsheet className="size-4 mr-1.5" />Export Excel</Button>
+          <Button variant="outline" size="sm" onClick={exportCsv}><FileSpreadsheet className="size-4 mr-1.5" />Export CSV</Button>
+          <ExportButton config={riskImportConfig} rows={filtered.map(riskToExportRow)} label="Export Excel" />
+          <TemplateDownloadButton config={riskImportConfig} />
+          <ImportButton config={riskImportConfig} userId={userId} onImported={() => setFilters((f) => ({ ...f }))} />
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4 mr-1.5" />Print / PDF</Button>
           <Button size="sm" onClick={onCreateNew}><Plus className="size-4 mr-1.5" />Tambah Risiko</Button>
         </div>

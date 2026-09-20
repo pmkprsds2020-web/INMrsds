@@ -73,6 +73,7 @@ export function IkpModule({ activeTab, userId, userName, activeUnit, canReview, 
         <IkpIncidentList
           onSelect={(id) => setDetail({ incidentId: id, focusTab: 'ringkasan' })}
           onCreateNew={() => onNavigate('ikp-form')}
+          userId={userId}
         />
       );
 
