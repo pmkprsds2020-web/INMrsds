@@ -32,6 +32,7 @@ const MODULE_LABEL: Record<string, string> = {
   kepuasan: 'Survei Kepuasan Pasien',
   uimu: 'UIMU',
   custom_indicator: 'Indikator Mutu Custom',
+  oppe: 'OPPE',
 };
 
 const STATUS_STYLE: Record<string, string> = {

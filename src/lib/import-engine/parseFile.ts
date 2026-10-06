@@ -35,10 +35,16 @@ export function parseWorkbookFile(file: File): Promise<ParsedFile> {
           ) ?? workbook.SheetNames[0];
         }
         const sheet = workbook.Sheets[sheetName];
+        // Template resmi (templateBuilder.ts) punya 4 baris metadata di atas
+        // header (judul, MODUL:, TEMPLATE VERSION:, DIBUAT:) sehingga header
+        // ada di baris ke-5. Deteksi tanda tangan tersebut dan mulai membaca
+        // dari baris header; file lain (tanpa metadata) tetap dibaca dari baris 1.
+        const headerRowIndex = detectTemplateHeaderRow(sheet);
         const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, {
           defval: '',
           raw: false,
           dateNF: 'yyyy-mm-dd',
+          ...(headerRowIndex > 0 ? { range: headerRowIndex } : {}),
         });
         const headers = rows.length > 0 ? Object.keys(rows[0]) : (XLSX.utils.sheet_to_json(sheet, { header: 1 })[0] as string[] ?? []);
 
@@ -55,4 +61,21 @@ export function parseWorkbookFile(file: File): Promise<ParsedFile> {
     };
     reader.readAsArrayBuffer(file);
   });
+}
+
+/**
+ * Kembalikan indeks baris (0-based) header untuk file hasil template resmi,
+ * atau 0 bila bukan template resmi. Tanda tangan: kolom A berisi
+ * "TEMPLATE VERSION:" pada 10 baris pertama; header = baris tidak kosong
+ * pertama setelah blok metadata (baris "DIBUAT:" / "TEMPLATE VERSION:").
+ */
+function detectTemplateHeaderRow(sheet: XLSX.WorkSheet): number {
+  const grid = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', blankrows: true, raw: false }).slice(0, 12);
+  const colA = grid.map((r) => String((r as unknown[])[0] ?? '').trim().toUpperCase());
+  const versionIdx = colA.findIndex((v) => v === 'TEMPLATE VERSION:');
+  if (versionIdx < 0) return 0;
+  const createdIdx = colA.findIndex((v) => v === 'DIBUAT:');
+  let i = Math.max(versionIdx, createdIdx) + 1;
+  while (i < grid.length && (grid[i] as unknown[]).every((c) => String(c ?? '').trim() === '')) i++;
+  return i < grid.length ? i : 0;
 }

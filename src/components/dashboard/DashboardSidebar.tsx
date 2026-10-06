@@ -44,6 +44,11 @@ import {
   MessageSquare,
   QrCode,
   Gauge,
+  Upload,
+  Download,
+  Settings2,
+  Award,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -203,6 +208,7 @@ export function DashboardSidebar({
     survey: false,
     kepuasanSurvey: false,
     uimu: false,
+    oppe: false,
     customInd: false,
     analytics: false,
   });
@@ -222,6 +228,7 @@ export function DashboardSidebar({
     else if (activeTab.startsWith('budaya-')) group = 'survey';
     else if (activeTab.startsWith('kepuasan-')) group = 'kepuasanSurvey';
     else if (activeTab.startsWith('uimu-')) group = 'uimu';
+    else if (activeTab.startsWith('oppe-')) group = 'oppe';
     else if (activeTab.startsWith('custom-ind-')) group = 'customInd';
     else if (['tren', 'kepatuhan', 'ringkasan', 'export-templates', 'ai-insights', 'activity-heatmap', 'data-quality', 'compliance-timeline'].includes(activeTab)) group = 'analytics';
     if (group) setOpenGroups((prev) => (prev[group as string] ? prev : { ...prev, [group as string]: true }));
@@ -1175,6 +1182,77 @@ export function DashboardSidebar({
                   <motion.div
                     layoutId="sidebar-uimu-active"
                     className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-violet-500"
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50">
+                  <item.icon className="size-3.5 text-muted-foreground" />
+                </span>
+                {!miniMode && (
+                  <span className="text-xs font-medium relative">{item.label}</span>
+                )}
+              </button>
+            </TooltipTrigger>
+            {miniMode && <TooltipContent side="right">{item.label}</TooltipContent>}
+          </Tooltip>
+        ))}
+        </CollapsibleContent>
+      </div>
+      </Collapsible>
+
+      <Separator className="bg-border" />
+
+      {/* ── OPPE (Ongoing Professional Practice Evaluation) section ── */}
+      <Collapsible open={miniMode ? true : openGroups.oppe} onOpenChange={() => !miniMode && toggleGroup('oppe')}>
+      <div className={miniMode ? 'px-1 py-1' : 'px-2 py-2'}>
+        {!miniMode && (
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-muted/20 rounded-md transition-colors group/section">
+              <ChevronRight
+                className={`size-3 text-muted-foreground/50 transition-transform duration-200 ${
+                  openGroups.oppe ? 'rotate-90' : ''
+                }`}
+              />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex-1">
+                OPPE
+              </span>
+              <span className="text-[9px] text-muted-foreground/40 font-medium">12</span>
+            </button>
+          </CollapsibleTrigger>
+        )}
+        <CollapsibleContent>
+        {[
+          { id: 'oppe-dashboard', icon: LayoutDashboard, label: 'Dashboard OPPE' },
+          { id: 'oppe-doctors', icon: UserRound, label: 'Data Dokter' },
+          { id: 'oppe-evaluations', icon: ClipboardList, label: 'Evaluasi OPPE' },
+          { id: 'oppe-indicators', icon: Database, label: 'Master Indikator OPPE' },
+          { id: 'oppe-monitoring', icon: Activity, label: 'Monitoring OPPE' },
+          { id: 'oppe-results', icon: Award, label: 'Hasil Evaluasi' },
+          { id: 'oppe-fppe', icon: Microscope, label: 'FPPE / Evaluasi Terfokus' },
+          { id: 'oppe-reports', icon: FileBarChart, label: 'Laporan OPPE' },
+          { id: 'oppe-import', icon: Upload, label: 'Import Data' },
+          { id: 'oppe-export', icon: Download, label: 'Export Data' },
+          { id: 'oppe-audit', icon: History, label: 'Audit Trail' },
+          { id: 'oppe-settings', icon: Settings2, label: 'Pengaturan OPPE' },
+        ].map((item) => (
+          <Tooltip key={item.id}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleTabChange(item.id)}
+                className={`
+                  group relative flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-all duration-200
+                  ${
+                    activeTab === item.id || (item.id === 'oppe-indicators' && activeTab === 'oppe-templates') || (item.id === 'oppe-evaluations' && (activeTab === 'oppe-evaluations-new' || activeTab.startsWith('oppe-evaluation:')))
+                      ? 'bg-rose-500/10 text-rose-500'
+                      : 'text-foreground/60 hover:bg-muted/30 hover:text-foreground/80'
+                  }
+                  ${miniMode ? 'justify-center' : ''}
+                `}
+              >
+                {(activeTab === item.id || (item.id === 'oppe-indicators' && activeTab === 'oppe-templates') || (item.id === 'oppe-evaluations' && (activeTab === 'oppe-evaluations-new' || activeTab.startsWith('oppe-evaluation:')))) && (
+                  <motion.div
+                    layoutId="sidebar-oppe-active"
+                    className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-rose-500"
                     transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                   />
                 )}

@@ -60,7 +60,12 @@ export async function buildPreview(
       errors = extra.errors;
     }
     results.push({
-      excelRow: i + 2, // header di baris 1 (atau 5 utk template resmi — ditampilkan relatif)
+      // SheetJS menyimpan indeks baris asli (0-based) di properti non-enumerable
+      // __rowNum__, sehingga nomor baris tetap akurat walau header template
+      // resmi ada di baris ke-5. Fallback: header di baris 1.
+      excelRow: typeof (rawRows[i] as { __rowNum__?: number }).__rowNum__ === 'number'
+        ? ((rawRows[i] as { __rowNum__?: number }).__rowNum__ as number) + 1
+        : i + 2,
       raw: rawRows[i],
       mapped,
       status: errors.length > 0 ? 'error' : 'valid',

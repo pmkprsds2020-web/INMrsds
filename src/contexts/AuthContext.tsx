@@ -37,6 +37,8 @@ interface AuthContextType {
   uimuRoles: string[];
   /** peran tambahan khusus modul Master Indikator Mutu Custom ('komite_mutu' | 'manajemen'). */
   customIndicatorRoles: string[];
+  /** peran tambahan khusus modul OPPE ('komite_medik' | 'evaluator' | 'dokter'). */
+  oppeRoles: string[];
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string, unitId: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -113,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [budayaRoles, setBudayaRoles] = useState<string[]>([]);
   const [uimuRoles, setUimuRoles] = useState<string[]>([]);
   const [customIndicatorRoles, setCustomIndicatorRoles] = useState<string[]>([]);
+  const [oppeRoles, setOppeRoles] = useState<string[]>([]);
   const recoveryEmailRef = useRef<string | null>(null);
 
   const fetchUnitId = async (uid: string) => {
@@ -122,11 +125,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // semuanya; kalau kolom belum ada, turun bertahap supaya unit_id/role
       // (fitur existing) tetap jalan meski salah satu atau lebih migrasi
       // modul belum diterapkan.
+      // oppe_roles hanya ada setelah supabase/migration_oppe.sql dijalankan —
+      // coba dulu dengan kolom itu, lalu turun ke rantai fallback lama.
       let { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .select('unit_id, role, ikp_roles, risk_roles, budaya_roles, uimu_roles, custom_indicator_roles')
+        .select('unit_id, role, ikp_roles, risk_roles, budaya_roles, uimu_roles, custom_indicator_roles, oppe_roles')
         .eq('id', uid)
         .maybeSingle();
+
+      if (error) {
+        const fallbackCustom = await supabase
+          .from(PROFILES_TABLE)
+          .select('unit_id, role, ikp_roles, risk_roles, budaya_roles, uimu_roles, custom_indicator_roles')
+          .eq('id', uid)
+          .maybeSingle();
+        data = fallbackCustom.data as typeof data;
+        error = fallbackCustom.error;
+      }
 
       if (error) {
         const fallbackUimu = await supabase
@@ -186,6 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setBudayaRoles((data as { budaya_roles?: string[] }).budaya_roles ?? []);
         setUimuRoles((data as { uimu_roles?: string[] }).uimu_roles ?? []);
         setCustomIndicatorRoles((data as { custom_indicator_roles?: string[] }).custom_indicator_roles ?? []);
+        setOppeRoles((data as { oppe_roles?: string[] }).oppe_roles ?? []);
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
@@ -214,6 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUnitIdState(null);
         setRole(null);
         setIkpRoles([]);
+        setOppeRoles([]);
       }
       setLoading(false);
     });
@@ -252,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUnitIdState(null);
     setRole(null);
     setIkpRoles([]);
+    setOppeRoles([]);
   };
 
   const resetPassword = async (email: string) => {
@@ -325,6 +343,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       budayaRoles,
       uimuRoles,
       customIndicatorRoles,
+      oppeRoles,
       login,
       signup,
       logout,
